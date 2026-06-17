@@ -45,6 +45,19 @@ python3 scripts/ygg_cross_agent_demo.py
 See `docs/reproducible-demo.md` for the full flow and `docs/backend-boundary.md`
 for the engine contract.
 
+## Install as an always-on service (macOS)
+
+```bash
+scripts/install.sh install [--embed-model paraphrase-multilingual]
+```
+
+Copies the engine to `~/.yggdrasil`, generates an auth token (not hardcoded),
+installs a launchd agent (auto-starts at login, restarts on crash), and
+registers the MCP facade with Claude Code and Codex — so every agent shares one
+memory with zero per-session setup. Manage with
+`scripts/install.sh status|start|stop|restart|logs|token|uninstall`. Dense
+search is optional via `--embed-model`; the default is zero-dependency lexical.
+
 ## Gates (the test suite that backs the status claims)
 
 | Gate | Proves |
