@@ -1,0 +1,183 @@
+from __future__ import annotations
+
+import os
+import sys, pathlib
+import tempfile
+import unittest
+
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
+
+from ygg_memory_server import MemoryStore, tokenize  # noqa: E402
+
+
+class MemoryStoreTests(unittest.TestCase):
+    def setUp(self) -> None:
+        handle = tempfile.NamedTemporaryFile(prefix="ygg-memory-", suffix=".sqlite", delete=False)
+        self.db_path = handle.name
+        handle.close()
+        self.store = MemoryStore(self.db_path)
+
+    def tearDown(self) -> None:
+        self.store._conn.close()
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.remove(self.db_path + suffix)
+            except FileNotFoundError:
+                pass
+
+    def add_memory(
+        self,
+        content: str,
+        *,
+        user_id: str = "user-1",
+        namespace: str = "default",
+        scope: str = "global",
+        metadata: dict | None = None,
+    ) -> dict:
+        return self.store.add(
+            content=content,
+            user_id=user_id,
+            namespace=namespace,
+            scope=scope,
+            metadata=metadata or {},
+        )
+
+    def test_add_returns_record_with_id_and_add_event(self) -> None:
+        record = self.add_memory("Remember the bridge design", metadata={"importance": 0.8})
+
+        self.assertIsInstance(record["id"], str)
+        self.assertTrue(record["id"])
+        self.assertEqual(record["event"], "ADD")
+        self.assertEqual(record["memory"], "Remember the bridge design")
+        self.assertEqual(record["content"], "Remember the bridge design")
+        self.assertIsInstance(record["metadata"], dict)
+        self.assertIs(record["archived"], False)
+        self.assertIn("created_at", record)
+        self.assertEqual(record["importance"], 0.8)
+
+    def test_add_does_not_dedupe_identical_content(self) -> None:
+        first = self.add_memory("Identical memory")
+        second = self.add_memory("Identical memory")
+
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertEqual(self.store.count(), 2)
+
+    def test_get_all_filters_namespace_limits_and_includes_archived(self) -> None:
+        first = self.add_memory("First n1 memory", namespace="n1")
+        second = self.add_memory("Second n1 memory", namespace="n1")
+        self.add_memory("Other namespace memory", namespace="n2")
+        self.store.update(second["id"], data=None, metadata_patch=None, archived=True)
+
+        limited = self.store.get_all(user_id="user-1", limit=1, namespace=None)
+        self.assertEqual([record["id"] for record in limited], [first["id"]])
+
+        n1_records = self.store.get_all(user_id="user-1", limit=10, namespace="n1")
+        self.assertEqual([record["id"] for record in n1_records], [first["id"], second["id"]])
+        self.assertTrue(n1_records[1]["archived"])
+
+    def test_search_finds_overlapping_terms_and_returns_positive_score(self) -> None:
+        record = self.add_memory("Apollo search index keeps useful lexical memories")
+
+        results = self.store.search(
+            query="lexical memories",
+            user_id="user-1",
+            limit=5,
+            filters={},
+            namespaces=None,
+        )
+
+        self.assertEqual(results[0]["id"], record["id"])
+        self.assertIsInstance(results[0]["score"], float)
+        self.assertGreater(results[0]["score"], 0.0)
+
+    def test_search_project_filter_isolates_records(self) -> None:
+        self.add_memory("Project alpha stores launch notes", metadata={"project": "a"})
+
+        results = self.store.search(
+            query="launch notes",
+            user_id="user-1",
+            limit=5,
+            filters={"project": "b"},
+            namespaces=None,
+        )
+
+        self.assertEqual(results, [])
+
+    def test_search_namespace_filter_isolates_records(self) -> None:
+        self.add_memory("Namespace one stores deploy notes", namespace="n1")
+
+        results = self.store.search(
+            query="deploy notes",
+            user_id="user-1",
+            limit=5,
+            filters={},
+            namespaces=["n2"],
+        )
+
+        self.assertEqual(results, [])
+
+    def test_search_excludes_archived_records(self) -> None:
+        record = self.add_memory("Archived memories should not be searchable")
+        self.store.update(record["id"], data=None, metadata_patch=None, archived=True)
+
+        results = self.store.search(
+            query="archived searchable",
+            user_id="user-1",
+            limit=5,
+            filters={},
+            namespaces=None,
+        )
+
+        self.assertEqual(results, [])
+
+    def test_update_replaces_content_and_merges_metadata_patch(self) -> None:
+        record = self.add_memory(
+            "Old searchable content",
+            metadata={"project": "alpha", "source": "seed"},
+        )
+
+        updated = self.store.update(
+            record["id"],
+            data="New searchable content",
+            metadata_patch={"type": "lesson"},
+            archived=None,
+        )
+
+        self.assertIsNotNone(updated)
+        self.assertEqual(updated["content"], "New searchable content")
+        self.assertEqual(updated["memory"], "New searchable content")
+        self.assertEqual(updated["metadata"]["project"], "alpha")
+        self.assertEqual(updated["metadata"]["source"], "seed")
+        self.assertEqual(updated["metadata"]["type"], "lesson")
+
+        stored = self.store.get_all(user_id="user-1", limit=10, namespace=None)
+        self.assertEqual(stored[0]["content"], "New searchable content")
+
+    def test_update_archived_sets_top_level_flag_and_metadata_status(self) -> None:
+        record = self.add_memory("Archive status override", metadata={"status": "active"})
+
+        updated = self.store.update(record["id"], data=None, metadata_patch=None, archived=True)
+
+        self.assertIsNotNone(updated)
+        self.assertIs(updated["archived"], True)
+        self.assertEqual(updated["metadata"]["status"], "archived")
+
+    def test_search_empty_query_returns_empty_list(self) -> None:
+        self.add_memory("Empty query should not match anything")
+
+        self.assertEqual(
+            self.store.search(query="", user_id="user-1", limit=5, filters={}, namespaces=None),
+            [],
+        )
+        self.assertEqual(
+            self.store.search(query="   ", user_id="user-1", limit=5, filters={}, namespaces=None),
+            [],
+        )
+
+    def test_tokenize_lowercases_and_drops_stopwords_and_one_char_tokens(self) -> None:
+        self.assertEqual(tokenize("The A QUICK x fox"), ["quick", "fox"])
+
+
+if __name__ == "__main__":
+    unittest.main()

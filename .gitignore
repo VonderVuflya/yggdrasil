@@ -1,0 +1,38 @@
+# --- Runtime / data (never commit) ---
+data/
+reports/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.log
+*.pid
+
+# --- Generated vault notes (runtime output; may contain private memory) ---
+# Keep the folder structure (.gitkeep), ignore generated notes.
+vault/04-learnings/*.md
+vault/99-review/*.md
+
+# --- Stray runtime artifacts ---
+debugging_lesson_record.json
+
+# --- Third-party external backend (Apache-2.0; optional, NOT bundled) ---
+Muninn/
+
+# --- Muninn runtime data dirs (not ours) ---
+muninn-data/
+muninn-data-small/
+muninn-data-fallback/
+muninn-data-dense-small/
+muninn_test/
+
+# --- Python / tooling / OS ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+node_modules/
+.DS_Store
+.pytest_cache/
