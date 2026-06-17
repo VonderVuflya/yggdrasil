@@ -20,6 +20,11 @@ backed by its own lightweight engine and materialized into an Obsidian vault.
   memories and applies **non-destructive** actions (`archive`,
   `merge_proposal`, `verify_or_archive`) only after explicit approval.
 - **Obsidian** — memories materialize to Markdown notes (a readable view).
+- **Dense search (optional)** — set `YGG_EMBED_MODEL` to add semantic retrieval
+  via a local Ollama embedding model, fused with lexical ranking via Reciprocal
+  Rank Fusion. Off by default (zero-dependency lexical search).
+- **Eval harness** — `eval/ygg_eval.py`: retrieval quality (recall@k, MRR) on a
+  fixed corpus; the metric that gates every retrieval change.
 
 ## Quick start
 
@@ -51,6 +56,33 @@ for the engine contract.
 
 All four pass on the bundled engine (`scripts/run_gates.sh`).
 
+## Retrieval quality
+
+`eval/ygg_eval.py` scores recall@1/recall@3/MRR on a fixed corpus, split by
+query class. Current numbers:
+
+| Mode | recall@1 | MRR | paraphrase recall@1 |
+| --- | --- | --- | --- |
+| lexical (default) | 0.77 | 0.77 | 0.00 |
+| dense on (`YGG_EMBED_MODEL=all-minilm`) | 0.92 | 0.96 | 0.67 |
+
+`keyword` and `identifier` classes are 1.0 in both modes; dense closes most of
+the `paraphrase` (semantic) gap.
+
+## Footprint
+
+Measured on a live instance (13 memories, 4 projects):
+
+| Resource | Default (lexical) |
+| --- | --- |
+| RAM (engine RSS) | ~21 MB — essentially one idle Python process |
+| CPU (idle) | ~0% (event-driven HTTP) |
+| Disk | SQLite + FTS index, ~tens of KB per memory |
+| Dependencies | none (Python 3.10+ stdlib only) |
+
+Dense search is opt-in and adds a local Ollama embedding model (e.g.
+`all-minilm`, ~45 MB) — no API key, nothing leaves the machine.
+
 ## Backend strategy
 
 The workflow layer talks to a small REST contract (`MemoryBackend` in
@@ -64,8 +96,8 @@ The workflow layer talks to a small REST contract (`MemoryBackend` in
   `NOTICE`/attribution if you redistribute.
 
 The "couple of genuinely useful" things an external engine adds (reranking,
-temporal validity) are tracked in `../ROADMAP.md` as native features to build
-under our own contract rather than depend on a third-party runtime.
+temporal validity) are tracked on the roadmap as native features to build under
+our own contract rather than depend on a third-party runtime.
 
 ## Migrating existing memory
 
@@ -85,9 +117,9 @@ the matching environment-corruption lesson ranks first).
 
 ## Known limitations
 
-- Retrieval is lexical: FTS5/BM25 relevance blended with an importance +
-  recency boost. Good enough for v1; dense/embedding ranking is a roadmap item,
-  not shipped.
+- Default retrieval is lexical (FTS5/BM25 + importance/recency boost); semantic
+  paraphrase matching needs dense search enabled (`YGG_EMBED_MODEL`). See the
+  Retrieval quality table.
 - The importer stores each source note's full Markdown (including its original
   frontmatter) as the memory body, so materialized notes have nested
   frontmatter and an empty `confidence`. Cosmetic; strip-on-import is a polish
