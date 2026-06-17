@@ -24,25 +24,37 @@ from typing import Sequence
 class OllamaEmbedder:
     """Minimal embedding client for a local Ollama server (stdlib only)."""
 
-    def __init__(self, url: str, model: str, timeout: int = 30):
+    def __init__(self, url: str, model: str, timeout: int = 120):
         self.url = url.rstrip("/")
         self.model = model
         self.timeout = timeout
 
     def embed(self, text: str) -> list[float] | None:
-        if not text:
+        # Embedding models have a small context window (~512 tokens). Long
+        # memories overflow it (HTTP 500), so cap the input and, on overflow,
+        # halve and retry — the title/summary/opening carries the retrieval
+        # signal anyway.
+        payload_text = (text or "").strip()[:4000]
+        if not payload_text:
             return None
-        body = json.dumps({"model": self.model, "prompt": text}).encode("utf-8")
-        req = urllib.request.Request(
-            self.url + "/api/embeddings", data=body,
-            headers={"Content-Type": "application/json"}, method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                vec = json.loads(resp.read()).get("embedding")
-            return vec if isinstance(vec, list) and vec else None
-        except (urllib.error.URLError, TimeoutError, ValueError):
-            return None
+        for _ in range(5):
+            body = json.dumps({"model": self.model, "prompt": payload_text}).encode("utf-8")
+            req = urllib.request.Request(
+                self.url + "/api/embeddings", data=body,
+                headers={"Content-Type": "application/json"}, method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    vec = json.loads(resp.read()).get("embedding")
+                return vec if isinstance(vec, list) and vec else None
+            except urllib.error.HTTPError as exc:
+                if exc.code >= 500 and len(payload_text) > 200:
+                    payload_text = payload_text[: len(payload_text) // 2]  # context overflow → shorten
+                    continue
+                return None
+            except (urllib.error.URLError, TimeoutError, ValueError):
+                return None
+        return None
 
 
 def get_embedder() -> OllamaEmbedder | None:

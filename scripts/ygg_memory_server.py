@@ -39,7 +39,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from ygg_embeddings import cosine, get_embedder
+from ygg_embeddings import OllamaEmbedder, cosine
 
 
 DEFAULT_HOST = os.environ.get("YGG_MEMORY_HOST", "127.0.0.1")
@@ -399,6 +399,23 @@ class MemoryStore:
             result.append(rec)
         return result[:limit]
 
+    def reindex_embeddings(self) -> int:
+        """Embed any rows missing an embedding — self-heals after a cold-start
+        timeout, or when dense is enabled after content already exists."""
+        if self.embedder is None:
+            return 0
+        with self._lock:
+            rows = self._conn.execute("SELECT seq, content FROM memories WHERE embedding IS NULL").fetchall()
+        healed = 0
+        for row in rows:
+            emb_json = self._embed_json(row["content"])
+            if emb_json:
+                with self._lock:
+                    self._conn.execute("UPDATE memories SET embedding=? WHERE seq=?", (emb_json, row["seq"]))
+                    self._conn.commit()
+                healed += 1
+        return healed
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "YggMemory/0.1"
@@ -525,6 +542,10 @@ def main() -> int:
     parser.add_argument("--db", default=DEFAULT_DB)
     parser.add_argument("--token", default=DEFAULT_TOKEN)
     parser.add_argument("--reset", action="store_true", help="Delete the database file before starting (clean run).")
+    parser.add_argument("--embed-model", default=os.environ.get("YGG_EMBED_MODEL"),
+                        help="Embedding model for dense search (e.g. all-minilm). Default: off (lexical).")
+    parser.add_argument("--embed-url", default=os.environ.get("YGG_EMBED_URL", "http://127.0.0.1:11434"),
+                        help="Ollama base URL for embeddings.")
     args = parser.parse_args()
 
     if args.reset and os.path.exists(args.db):
@@ -534,14 +555,22 @@ def main() -> int:
             except FileNotFoundError:
                 pass
 
-    store = MemoryStore(args.db, embedder=get_embedder())
+    embedder = OllamaEmbedder(args.embed_url, args.embed_model) if args.embed_model else None
+    if embedder is not None:
+        embedder.embed("warmup")  # load the model before serving so the first adds don't time out
+    store = MemoryStore(args.db, embedder=embedder)
+    if embedder is not None:
+        healed = store.reindex_embeddings()
+        if healed:
+            print(f"ygg-memory: backfilled {healed} missing embeddings", flush=True)
     Handler.store = store
     Handler.token = args.token
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     print(
         f"ygg-memory: listening on http://{args.host}:{args.port}  db={args.db}  "
-        f"fts5={'on' if store.use_fts else 'off (python fallback)'}",
+        f"fts5={'on' if store.use_fts else 'off (python fallback)'}  "
+        f"dense={args.embed_model or 'off'}",
         flush=True,
     )
     try:
