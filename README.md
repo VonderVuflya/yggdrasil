@@ -58,6 +58,13 @@ memory with zero per-session setup. Manage with
 `scripts/install.sh status|start|stop|restart|logs|token|uninstall`. Dense
 search is optional via `--embed-model`; the default is zero-dependency lexical.
 
+Optional auto-bootstrap: `scripts/install.sh hooks` adds a Claude Code
+`SessionStart` hook (backs up `settings.json` first) that injects the current
+project's durable memory at session start — the retrieval half of the
+self-learning loop. Remove with `scripts/install.sh unhooks`. Writeback stays
+explicit (the agent calls `ygg_remember`): auto-writing on every stop is
+intentionally avoided to prevent memory pollution.
+
 ## Gates (the test suite that backs the status claims)
 
 | Gate | Proves |

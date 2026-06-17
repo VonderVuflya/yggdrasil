@@ -42,6 +42,7 @@ case "$cmd" in
     echo "==> installing into $YGG_HOME"
     mkdir -p "$YGG_HOME/scripts" "$YGG_HOME/data" "$YGG_HOME/logs"
     cp "$SRC_SCRIPTS"/*.py "$YGG_HOME/scripts/"
+    [ -d "$SRC_SCRIPTS/hooks" ] && cp -R "$SRC_SCRIPTS/hooks" "$YGG_HOME/scripts/" 2>/dev/null || true
 
     if [ ! -f "$YGG_HOME/token" ]; then
       "$PYTHON" -c "import secrets;print(secrets.token_hex(24))" > "$YGG_HOME/token"
@@ -118,11 +119,42 @@ PLISTEOF
   restart) _stop; sleep 1; _start; echo "restarted";;
   logs) tail -n "${LINES:-40}" "$YGG_HOME/logs/engine.log";;
   token) cat "$YGG_HOME/token";;
+  hooks)
+    HOOK_CMD="${PYTHON} ${YGG_HOME}/scripts/hooks/ygg_session_start.py"
+    "$PYTHON" - "$HOME/.claude/settings.json" "$HOOK_CMD" <<'PY'
+import json, os, shutil, sys
+path, cmd = sys.argv[1], sys.argv[2]
+cfg = json.load(open(path)) if os.path.exists(path) else {}
+ss = cfg.setdefault("hooks", {}).setdefault("SessionStart", [])
+if any(h.get("command") == cmd for g in ss for h in g.get("hooks", [])):
+    print("SessionStart hook already enabled"); sys.exit(0)
+if os.path.exists(path):
+    shutil.copy(path, path + ".ygg.bak")
+ss.append({"hooks": [{"type": "command", "command": cmd}]})
+json.dump(cfg, open(path, "w"), indent=2)
+print("enabled Yggdrasil SessionStart hook (backup: ~/.claude/settings.json.ygg.bak)")
+PY
+    ;;
+  unhooks)
+    "$PYTHON" - "$HOME/.claude/settings.json" "${YGG_HOME}/scripts/hooks/ygg_session_start.py" <<'PY'
+import json, os, sys
+path, marker = sys.argv[1], sys.argv[2]
+if not os.path.exists(path):
+    print("no settings.json"); sys.exit(0)
+cfg = json.load(open(path))
+ss = cfg.get("hooks", {}).get("SessionStart", [])
+cfg.setdefault("hooks", {})["SessionStart"] = [
+    g for g in ss if not any(marker in h.get("command", "") for h in g.get("hooks", []))
+]
+json.dump(cfg, open(path, "w"), indent=2)
+print("removed Yggdrasil SessionStart hook")
+PY
+    ;;
   uninstall)
     _stop; rm -f "$PLIST"
     command -v claude >/dev/null 2>&1 && claude mcp remove yggdrasil -s user >/dev/null 2>&1 || true
     command -v codex  >/dev/null 2>&1 && codex mcp remove yggdrasil >/dev/null 2>&1 || true
     echo "uninstalled service + MCP registration. Data kept at $YGG_HOME (rm -rf to remove)."
     ;;
-  *) echo "usage: install.sh {install|status|start|stop|restart|logs|token|uninstall}"; exit 2;;
+  *) echo "usage: install.sh {install|status|start|stop|restart|logs|token|hooks|unhooks|uninstall}"; exit 2;;
 esac
