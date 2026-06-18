@@ -4,7 +4,7 @@
 Claude Code, Codex et n'importe quel hôte MCP se souviennent de vos projets — décisions, leçons, statut — d'une session, d'un outil et d'un projet à l'autre.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT">
+  <img src="https://img.shields.io/badge/License-Elastic%202.0-blue.svg" alt="Elastic License 2.0">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/deps-zero%20(stdlib)-brightgreen" alt="zero deps">
   <img src="https://img.shields.io/badge/MCP-Claude%20·%20Codex%20·%20any%20host-purple" alt="MCP">
@@ -251,6 +251,6 @@ Issues et PR bienvenues. Lancez `scripts/run_gates.sh` et `python3 -m unittest d
 
 ## 📜 Licence
 
-MIT — voir [LICENSE](./LICENSE).
+**Elastic License 2.0** — voir [LICENSE](./LICENSE). Vous pouvez utiliser, modifier, auto-héberger et redistribuer Yggdrasil librement. Vous ne pouvez **pas** le vendre comme produit ni le proposer à des tiers comme service hébergé/géré. Il est source-available, pas open source au sens de l'OSI.
 
 > Un backend **Muninn** externe (`github.com/wjohns989/Muninn`, Apache-2.0) est optionnel et **non inclus** ; pointez `YGG_MUNINN_URL` vers votre propre instance. Préservez son `NOTICE`/son attribution si vous le redistribuez.

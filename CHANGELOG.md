@@ -28,6 +28,9 @@ governance loop are covered by passing gates (`scripts/run_gates.sh`).
 - **Eval harness** (recall@k / MRR by query class) + 4 integration gates +
   engine unit tests.
 - **Docs** — README in English / Русский / 简体中文 / Español / Français.
+- **License** — Elastic License 2.0 (source-available: free to use, modify,
+  self-host, and redistribute; no resale as a product and no offering it to
+  others as a hosted/managed service).
 
 ### Notes
 - An external **Muninn** backend (Apache-2.0) is optional and not bundled.

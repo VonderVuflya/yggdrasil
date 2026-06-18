@@ -4,7 +4,7 @@
 让 Claude Code、Codex 以及任何 MCP 宿主，在不同会话、不同工具、不同项目之间都记得你的项目——记得决策、教训和进度。</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT">
+  <img src="https://img.shields.io/badge/License-Elastic%202.0-blue.svg" alt="Elastic License 2.0">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/deps-zero%20(stdlib)-brightgreen" alt="zero deps">
   <img src="https://img.shields.io/badge/MCP-Claude%20·%20Codex%20·%20any%20host-purple" alt="MCP">
@@ -251,6 +251,6 @@ Context7 抓取的是最新的<i>公开库文档</i>(比如最新的 React/Next.
 
 ## 📜 许可证
 
-MIT —— 参见 [LICENSE](./LICENSE)。
+**Elastic License 2.0** —— 参见 [LICENSE](./LICENSE)。你可以自由使用、修改、自托管和分发 Yggdrasil，但**不得**将其作为产品出售，也**不得**作为托管/managed 服务提供给他人。它是 source-available，并非 OSI 认可的开源协议。
 
 > 外部的 **Muninn** 后端(`github.com/wjohns989/Muninn`,Apache-2.0)是可选的,且**不随本项目打包**;请把 `YGG_MUNINN_URL` 指向你自己的实例。如果你要再分发它,请保留其 `NOTICE`/署名信息。
