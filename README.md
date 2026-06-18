@@ -1,170 +1,256 @@
-# Yggdrasil
+<h1 align="center">🌳 Yggdrasil</h1>
 
-A thin, agent-agnostic **memory + governance layer** so coding agents (Claude
-Code, Codex, and any MCP host) share one durable, inspectable project memory —
-backed by its own lightweight engine and materialized into an Obsidian vault.
+<p align="center"><b>One shared, durable memory for all your AI coding agents.</b><br/>
+Claude Code, Codex, and any MCP host remember your projects — decisions, lessons, status — across sessions, tools, and projects.</p>
 
-> Status: **alpha / working prototype.** The happy path and the full review
-> governance loop are covered by passing gates (see below). Not production
-> hardened. Honest about what works — every claim here is backed by a gate you
-> can run.
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/deps-zero%20(stdlib)-brightgreen" alt="zero deps">
+  <img src="https://img.shields.io/badge/MCP-Claude%20·%20Codex%20·%20any%20host-purple" alt="MCP">
+  <img src="https://img.shields.io/badge/local--first-100%25%20private-success" alt="local-first">
+  <img src="https://img.shields.io/badge/status-alpha-orange" alt="alpha">
+</p>
 
-## What's here
+<p align="center">
+  <a href="#-quickstart">Quickstart</a> ·
+  <a href="#-how-it-works">How it works</a> ·
+  <a href="#%EF%B8%8F-commands">Commands</a> ·
+  <a href="#-faq">FAQ</a> ·
+  <a href="#-yggdrasil-vs-alternatives">Comparison</a>
+</p>
 
-- **Own memory engine** — `scripts/ygg_memory_server.py`: a stdlib-only HTTP
-  server over SQLite + FTS5. Zero heavy dependencies. The default backend.
-- **Agent facade** — `scripts/ygg.py` (CLI) + `scripts/ygg_mcp_server.py` (MCP
-  stdio). Secret-refusal guard and content-hash dedupe live here.
-- **Governance loop** — `scripts/ygg_review_queue.py` →
-  `scripts/ygg_review_actions.py`: surfaces duplicate / stale / conflicting
-  memories and applies **non-destructive** actions (`archive`,
-  `merge_proposal`, `verify_or_archive`) only after explicit approval.
-- **Obsidian** — memories materialize to Markdown notes (a readable view).
-- **Dense search (optional)** — set `YGG_EMBED_MODEL` to add semantic retrieval
-  via a local Ollama embedding model, fused with lexical ranking via Reciprocal
-  Rank Fusion. Off by default (zero-dependency lexical search).
-- **Eval harness** — `eval/ygg_eval.py`: retrieval quality (recall@k, MRR) on a
-  fixed corpus; the metric that gates every retrieval change.
-- **Smart write-path (optional)** — `scripts/ygg_writepath.py`: a background
-  local model (Ollama) finds SEMANTIC duplicates/contradictions the lexical
-  queue misses and consolidates them non-destructively (similarity-gated,
-  archive-only, high-confidence). Autonomous, zero agent tokens.
+<p align="center">
+  <a href="./README.md"><img src="https://img.shields.io/badge/README-English-blue" alt="English"></a>
+  <a href="./i18n/README.ru.md"><img src="https://img.shields.io/badge/docs-Русский-darkblue" alt="Русский"></a>
+  <a href="./i18n/README.zh.md"><img src="https://img.shields.io/badge/docs-简体中文-red" alt="简体中文"></a>
+  <a href="./i18n/README.es.md"><img src="https://img.shields.io/badge/docs-Español-orange" alt="Español"></a>
+  <a href="./i18n/README.fr.md"><img src="https://img.shields.io/badge/docs-Français-blue" alt="Français"></a>
+</p>
 
-## Quick start
+---
 
-```bash
-# start engine, seed fixtures, run every gate, tear down — one command:
-scripts/run_gates.sh
+Every new chat, your AI forgets. You re-explain the project, the decisions, the gotchas — every time, in every tool. **Yggdrasil is a tiny always-on memory brain that any agent plugs into.** Open a new session in any project, with any AI, and it already knows what you decided, what broke, and what's still open — and it quietly learns from your work in the background.
 
-# or run the engine yourself:
-python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite
+```text
+$ cd ~/projects/checkout-api && claude        # a brand-new session
+
+🌳 Yggdrasil  (injected automatically at session start)
+   You are Yggdrasil — your persistent assistant across tools and projects.
+   Open follow-ups & status:
+   • [project_status] payments refactor: idempotency keys added; open: e2e tests
+   Durable memory for `checkout-api`:
+   • [debugging_lesson] webhook 401 → signing secret rotated; update env + redeploy
+
+> "have I solved a flaky websocket reconnect anywhere before?"
+
+🌳 recall → found in project `realtime-dash`:
+   refresh the token *before* opening the socket, then retry with capped backoff.
 ```
 
-Cross-agent shared memory over MCP (writer + reader are separate sessions):
+No "let me remind you what we did yesterday." It's just there.
+
+## ❌ Without Yggdrasil
+
+- 🔁 You re-explain project context to the AI in every new chat.
+- 🧩 Lessons learned in one project never reach the next one.
+- 🤖 Switch from Claude Code to Codex → the new tool knows nothing.
+- 🗑️ Hard-won debugging insights vanish when the session ends.
+
+## ✅ With Yggdrasil
+
+- 🧠 **Persistent memory** — decisions, lessons, and status survive across sessions.
+- 🔌 **Any agent, one brain** — Claude Code, Codex, any MCP host share the same memory.
+- 🌐 **Cross-project recall** — *"this looks like what you did in project B — reuse it?"*
+- 🌱 **Self-learning** — a local model consolidates memory in the background (zero API tokens).
+- 🪪 **A soul** — give it a name and personality; it shows up the same in every tool.
+- 🔒 **100% local & private** — your memory lives on your machine. No cloud, no account.
+
+## 🚀 Quickstart
+
+> **Requirements:** macOS, Python 3.10+. Optional (for semantic search): [Ollama](https://ollama.com).
 
 ```bash
-python3 scripts/ygg_cross_agent_demo.py
+git clone https://github.com/your-org/yggdrasil.git
+cd yggdrasil
+scripts/install.sh install          # interactive wizard — detects your hardware,
+                                    # recommends models, sets up the background service
 ```
 
-See `docs/reproducible-demo.md` for the full flow and `docs/backend-boundary.md`
-for the engine contract.
+That's it. The installer:
+1. 🔍 detects your CPU/RAM/GPU and **recommends models that fit your machine**,
+2. 🔑 generates a private auth token (never hardcoded),
+3. 🛎️ installs an always-on background service (auto-starts at login, restarts on crash),
+4. 🤝 registers the memory tools with **Claude Code and Codex**,
+5. 🪝 (optional) enables a session-start hook that auto-injects your project memory.
 
-## Install as an always-on service (macOS)
+Prefer to just try the engine without installing a service?
 
 ```bash
-scripts/install.sh install [--embed-model paraphrase-multilingual] [--bg-model qwen2.5:1.5b]
+python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite   # runs on :42069
+scripts/run_gates.sh                                                # see all checks pass
 ```
 
-Run with no flags in a terminal for a **guided wizard**: it detects your
-hardware, shows an embedding/background model menu with descriptions and
-per-model fit verdicts (e.g. "✓ fine on CPU" vs "⚠ slow on CPU-only"),
-recommends picks for your machine, and lets you toggle features. See the
-catalog anytime with `scripts/install.sh recommend`.
+## 🧠 How it works
 
-Copies the engine to `~/.yggdrasil`, generates an auth token (not hardcoded),
-installs a launchd agent (auto-starts at login, restarts on crash), and
-registers the MCP facade with Claude Code and Codex — so every agent shares one
-memory with zero per-session setup. Manage with
-`scripts/install.sh status|start|stop|restart|logs|token|uninstall`. Dense
-search is optional via `--embed-model`; the default is zero-dependency lexical.
+Yggdrasil is **memory + tools** — the *intelligence* is your LLM. It just makes sure the right memory is in front of the right agent at the right moment.
 
-Optional auto-bootstrap: `scripts/install.sh hooks` adds a Claude Code
-`SessionStart` hook (backs up `settings.json` first) that injects a small
-**identity** block (a named, consistent assistant persona — the "soul") plus
-the current project's durable memory at session start — the retrieval half of
-the self-learning loop. Customize the identity in `~/.yggdrasil/identity.json`
-(`name`, `persona`, `user_facts`). The hook also surfaces open follow-ups and
-the latest project status, so "what's the status of X?" is answerable from the
-first message in a new session — on any machine, any agent. Remove with `scripts/install.sh unhooks`. Writeback stays
-explicit (the agent calls `ygg_remember`): auto-writing on every stop is
-intentionally avoided to prevent memory pollution.
+```text
+   Claude Code / Codex / any MCP host
+                 │   (MCP tools: ygg_search, ygg_recall, ygg_remember … )
+                 ▼
+        ┌─────────────────────┐      SessionStart hook injects
+        │  Yggdrasil engine    │◀──── identity + project memory + open follow-ups
+        │  (always-on daemon)  │
+        │  SQLite + FTS5       │      background local model (optional)
+        │  + optional vectors  │────▶ dedupes / links / consolidates memory
+        └─────────────────────┘
+                 │ materializes to
+                 ▼
+          📓 Obsidian vault (human-readable, editable)
+```
 
-Scheduled consolidation: `scripts/install.sh consolidate` installs a launchd job
-that periodically runs the smart write-path in **propose mode** (detect + log
-consolidation candidates, archive nothing). Auto-archiving is opt-in
-(`YGG_CONSOLIDATE_APPLY=1`) and best paired with a strong model — a small local
-model can confidently mislabel distinct-but-similar lessons, so the safe default
-only proposes.
+- **Engine** — a stdlib-only HTTP server over SQLite + FTS5. Zero dependencies, ~21 MB RAM.
+- **Retrieval** — lexical by default; add a local embedding model for semantic + cross-lingual search.
+- **Governance** — duplicates / stale / conflicting memories are surfaced for review; changes are non-destructive (archive, never delete).
+- **Obsidian** — every memory is also a Markdown note you can read and edit.
 
-## Gates (the test suite that backs the status claims)
+## ⭐ Features
 
-| Gate | Proves |
+- 🧠 **Durable cross-session memory** for any MCP-compatible agent.
+- 🌐 **Cross-project recall** + a proactive "you solved this before" contract.
+- 🔎 **Hybrid retrieval** — BM25 + optional dense embeddings, fused; cross-lingual (e.g. EN↔RU).
+- 🪪 **Identity / persona** injected every session (the "Jarvis feel").
+- 📌 **Status & follow-ups** surfaced at session start — *"what's the status of X?"* answers instantly.
+- 🌱 **Background self-learning** — a small local model consolidates memory (propose-safe by default).
+- 🧹 **Governance loop** — review queue + non-destructive archive/merge.
+- 📓 **Obsidian materialization** — readable, editable, portable.
+- 🔒 **Local-first & private** — no cloud, no account, your data stays put.
+- 🪶 **Zero hard dependencies** — pure Python stdlib; optional local models via Ollama.
+
+## 🛠️ Commands
+
+**CLI — `scripts/ygg.py`** (agent-facing memory ops)
+
+| Command | What it does |
 | --- | --- |
-| `ygg_quality_gate.py` | health, bootstrap, project isolation, secret guard, Obsidian materialize, MCP facade |
-| `ygg_dense_gate.py` | paraphrase retrieval (FTS5), isolation, wrapper dedupe guard |
-| `ygg_review_apply_gate.py` | exact-duplicate detection → approved archive → follow-up queue ignores it |
-| `ygg_governance_gate.py` | near-duplicate `merge_proposal` + stale `verify_or_archive`, non-destructive |
+| `health` | Check the engine is alive |
+| `bootstrap --project P` | Pull a project's memory before starting work |
+| `search --project P --query "…"` | Project-scoped search (`--type`, `--limit`, `--json`) |
+| `recall --query "…"` | **Cross-project** search — "have I done this anywhere?" |
+| `remember --project P --type debugging_lesson --content "…"` | Save a durable memory (secret-guarded, deduped) |
+| `materialize --id ID --project P` | Export one memory to an Obsidian note |
 
-All four pass on the bundled engine (`scripts/run_gates.sh`).
+**Service — `scripts/install.sh`** (lifecycle & setup)
 
-## Retrieval quality
+| Command | What it does |
+| --- | --- |
+| `install` | Guided wizard → background service + MCP registration |
+| `recommend` | Show the hardware-aware model catalog |
+| `status` · `start` · `stop` · `restart` · `logs` | Manage the always-on daemon |
+| `hooks` · `unhooks` | Enable/disable the SessionStart auto-bootstrap hook |
+| `consolidate` · `unconsolidate` | Schedule/remove background memory consolidation |
+| `token` · `uninstall` | Print the auth token · remove service + registration |
 
-`eval/ygg_eval.py` scores recall@1/recall@3/MRR on a fixed corpus, split by
-query class (keyword / identifier / paraphrase / crosslingual). Current numbers:
+**MCP tools** (what agents see): `ygg_health`, `ygg_bootstrap`, `ygg_search`, `ygg_recall`, `ygg_remember`, `ygg_materialize`.
+
+## 🔌 Use it with your agent
+
+- **Claude Code** — after `install.sh install`, the tools are registered (`/mcp` shows `yggdrasil`) and the SessionStart hook auto-injects memory. Just open a project and work.
+- **Codex** — registered too; approve the `ygg_*` tool call once per session.
+- **Any MCP host** — point it at `scripts/ygg_mcp_server.py` (stdio) with `YGG_MUNINN_URL` + `YGG_MUNINN_TOKEN`.
+
+Give it a personality — edit `~/.yggdrasil/identity.json`:
+
+```json
+{ "name": "Jarvis", "persona": "concise, proactive, dry wit", "user_facts": ["prefers TypeScript", "ships small PRs"] }
+```
+
+## 📊 Footprint & quality
+
+**Footprint** (measured, 13 memories): **~21 MB RAM**, **~0% idle CPU**, **zero dependencies** (Python 3.10+ stdlib). Disk ≈ tens of KB per memory. Dense search is optional and adds a local Ollama model (e.g. `all-minilm`, 45 MB).
+
+**Retrieval quality** (`eval/ygg_eval.py`, recall@1):
 
 | Mode | recall@1 | paraphrase | crosslingual (EN→RU) |
 | --- | --- | --- | --- |
 | lexical (default) | 0.63 | 0.00 | 0.00 |
-| dense — `all-minilm` (45 MB, English) | 0.75 | 0.67 | 0.00 |
-| dense — `paraphrase-multilingual` (562 MB) | 0.94 | 0.67 | 1.00 |
+| dense · `all-minilm` (45 MB, EN) | 0.75 | 0.67 | 0.00 |
+| dense · `paraphrase-multilingual` (~560 MB) | **0.94** | 0.67 | **1.00** |
 
-`keyword` and `identifier` classes are 1.0 in every mode. Pick the embedding
-model by your memory's languages: `all-minilm` is a light English-only default;
-a multilingual model closes the EN↔RU gap (real bilingual memory needs it). Set
-`YGG_EMBED_MODEL` accordingly.
+`keyword` and `identifier` queries are 1.0 in every mode. Run it yourself: `python3 eval/ygg_eval.py`.
 
-## Footprint
+## ❓ FAQ
 
-Measured on a live instance (13 memories, 4 projects):
+<details>
+<summary><b>Does it send my code or memory to the cloud?</b></summary>
 
-| Resource | Default (lexical) |
-| --- | --- |
-| RAM (engine RSS) | ~21 MB — essentially one idle Python process |
-| CPU (idle) | ~0% (event-driven HTTP) |
-| Disk | SQLite + FTS index, ~tens of KB per memory |
-| Dependencies | none (Python 3.10+ stdlib only) |
+No. The engine, the database, and the optional models all run locally. No account, no telemetry. Your memory never leaves your machine.
+</details>
 
-Dense search is opt-in and adds a local Ollama embedding model — no API key,
-nothing leaves the machine. Model size is your call: `all-minilm` (~45 MB,
-English) or `paraphrase-multilingual` (~562 MB, EN/RU and more).
+<details>
+<summary><b>How is this different from Context7 / RAG over docs?</b></summary>
 
-## Backend strategy
+Context7 fetches up-to-date <i>public library docs</i> (the latest React/Next.js API). Yggdrasil remembers <i>your own work</i> — your decisions, lessons, and project status. They're complementary; run both. See <a href="#-yggdrasil-vs-alternatives">comparison</a>.
+</details>
 
-The workflow layer talks to a small REST contract (`MemoryBackend` in
-`scripts/ygg_core.py`), so the engine is swappable:
+<details>
+<summary><b>Does it automatically remember everything?</b></summary>
 
-- **Default:** the bundled own engine. No external service, no model downloads.
-- **Optional:** an external **Muninn** instance
-  (`github.com/wjohns989/Muninn`, Apache-2.0, third party — NOT bundled).
-  Point `YGG_MUNINN_URL`/`YGG_MUNINN_TOKEN` at it. It needs a small
-  metadata-update shim; see `docs/backend-boundary.md`. Preserve its
-  `NOTICE`/attribution if you redistribute.
+No — by design. Retrieval is automatic; <i>writing</i> is deliberate (the agent calls <code>ygg_remember</code> for durable lessons). Auto-capturing everything pollutes memory, so we don't. A background model consolidates what's already saved (propose-only by default).
+</details>
 
-The "couple of genuinely useful" things an external engine adds (reranking,
-temporal validity) are tracked on the roadmap as native features to build under
-our own contract rather than depend on a third-party runtime.
+<details>
+<summary><b>Do I need a GPU or an API key?</b></summary>
 
-## Migrating existing memory
+No. The default is pure lexical search — zero dependencies, instant. Semantic search is opt-in and uses a <i>local</i> model via Ollama (no API key). The installer recommends a model that fits your hardware.
+</details>
 
-Claude Code accumulates per-project memory under
-`~/.claude/projects/<sanitized>/memory/`. Import it into Yggdrasil (drives the
-real `ygg.py remember` path — secret guard + dedupe — then materializes notes):
+<details>
+<summary><b>How many tokens does it cost my agent?</b></summary>
 
-```bash
-python3 scripts/ygg_import_claude_memory.py \
-  --source-dir ~/.claude/projects/<sanitized>/memory \
-  --project <name> --materialize
-```
+Very few. Session start injects ~300 tokens of memory; each tool call returns a small snippet. All the heavy work (indexing, embeddings, consolidation) runs off-LLM on your machine.
+</details>
 
-Dogfooded on real projects: existing Claude-memory lessons import cleanly and
-are retrievable by symptom (e.g. "service won't start after an image upgrade" →
-the matching environment-corruption lesson ranks first).
+<details>
+<summary><b>Can I edit or delete memories by hand?</b></summary>
 
-## Known limitations
+Yes. Memories materialize to Markdown notes in an Obsidian vault — read, edit, or remove them like any file. The engine never hard-deletes; it archives (reversible).
+</details>
 
-- Default retrieval is lexical (FTS5/BM25 + importance/recency boost); semantic
-  paraphrase matching needs dense search enabled (`YGG_EMBED_MODEL`). See the
-  Retrieval quality table.
+<details>
+<summary><b>Is it production-ready?</b></summary>
 
-The engine has unit tests (`tests/test_ygg_memory_server.py`, run via
-`python3 -m unittest`) in addition to the integration gates.
+It's an honest <b>alpha</b>: the happy path and the full governance loop are covered by passing gates (<code>scripts/run_gates.sh</code>). Not yet hardened for multi-user/production.
+</details>
+
+## 🆚 Yggdrasil vs alternatives
+
+| | **Yggdrasil** | Context7 | Plain LLM memory |
+| --- | --- | --- | --- |
+| Knows **your** decisions/lessons | ✅ | ❌ | ⚠️ within one session |
+| Up-to-date public library docs | ❌ (use Context7) | ✅ | ❌ |
+| Cross-session & cross-**agent** | ✅ | ✅ | ❌ |
+| Cross-**project** recall | ✅ | — | ❌ |
+| Writes/accumulates your memory | ✅ | ❌ (read-only) | ⚠️ |
+| Local & private | ✅ | ☁️ hosted | depends |
+| Self-consolidating | ✅ | ❌ | ❌ |
+
+**TL;DR:** Context7 = correct API of *someone else's* library. Yggdrasil = memory of *your own* work. Use both.
+
+## 🗺️ Roadmap
+
+- 🔗 Relation graph (`SOLVES` / `SUPERSEDES` / `CONTRADICTS`) for richer reasoning.
+- 🛰️ Multi-device sync — continue literally from any machine.
+- 🧪 Stronger optional models for safe autonomous consolidation.
+- 🐧 Linux/Windows service installers (currently macOS launchd).
+
+## 🤝 Contributing
+
+Issues and PRs welcome. Run `scripts/run_gates.sh` and `python3 -m unittest discover -s tests` before submitting — all gates must stay green.
+
+## 📜 License
+
+MIT — see [LICENSE](./LICENSE).
+
+> An external **Muninn** backend (`github.com/wjohns989/Muninn`, Apache-2.0) is optional and **not bundled**; point `YGG_MUNINN_URL` at your own instance. Preserve its `NOTICE`/attribution if you redistribute it.
