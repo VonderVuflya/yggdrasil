@@ -2,8 +2,8 @@
 
 Yggdrasil is a thin workflow/governance layer over a memory engine:
 
-- **Yggdrasil's own engine** (`scripts/ygg_memory_server.py`) is the default durable backend — stdlib only (SQLite + FTS5), zero heavy dependencies.
-- `scripts/ygg.py` is the agent-facing facade; `scripts/ygg_mcp_server.py` exposes it over MCP.
+- **Yggdrasil's own engine** (`yggdrasil/ygg_memory_server.py`) is the default durable backend — stdlib only (SQLite + FTS5), zero heavy dependencies.
+- `yggdrasil/ygg.py` is the agent-facing facade; `yggdrasil/ygg_mcp_server.py` exposes it over MCP.
 - Obsidian Markdown is a materialized view.
 - An external Muninn instance is an **optional** alternative backend (see `docs/backend-boundary.md`).
 
@@ -22,20 +22,20 @@ down. No external backend, no model downloads.
 Start the engine (leave it running):
 
 ```bash
-python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg-demo.sqlite
+python3 yggdrasil/ygg_memory_server.py --reset --db /tmp/ygg-demo.sqlite
 # listening on http://127.0.0.1:42069  fts5=on
 ```
 
 Seed the quality-gate fixtures:
 
 ```bash
-YGG_NAMESPACE=yggdrasil-demo YGG_USER_ID=demo-user python3 scripts/ygg_seed_demo.py
+YGG_NAMESPACE=yggdrasil-demo YGG_USER_ID=demo-user python3 yggdrasil/ygg_seed_demo.py
 ```
 
 ### Quality gate
 
 ```bash
-scripts/ygg_quality_gate.py
+yggdrasil/ygg_quality_gate.py
 ```
 
 Checks `/health`, project bootstrap, project isolation, the secret guard,
@@ -44,7 +44,7 @@ Obsidian materialization, and the MCP facade handshake/tool-list/bootstrap.
 ### Dense / dedupe gate
 
 ```bash
-scripts/ygg_dense_gate.py
+yggdrasil/ygg_dense_gate.py
 ```
 
 Paraphrase retrieval (FTS5 porter), project isolation, and the Ygg wrapper's
@@ -55,7 +55,7 @@ guard (`YGG_DUPLICATE_SKIP`) is the dedupe path.
 ### Review apply gate (archive action)
 
 ```bash
-scripts/ygg_review_apply_gate.py
+yggdrasil/ygg_review_apply_gate.py
 ```
 
 Detects an exact duplicate, proposes actions, approves the archive action,
@@ -65,7 +65,7 @@ duplicate.
 ### Governance gate (merge_proposal + verify_or_archive)
 
 ```bash
-scripts/ygg_governance_gate.py
+yggdrasil/ygg_governance_gate.py
 ```
 
 Near-duplicate memories -> `merge_proposal` (archive non-canonical members,
@@ -77,7 +77,7 @@ annotate canonical with `merged_from`). Stale/conflict-marked memory ->
 With an engine running:
 
 ```bash
-python3 scripts/ygg_cross_agent_demo.py
+python3 yggdrasil/ygg_cross_agent_demo.py
 ```
 
 Two independent MCP sessions ("claude" writes, "codex" reads) share one engine.
@@ -98,9 +98,9 @@ Point Yggdrasil at any compatible REST engine instead of the bundled one:
 ```bash
 export YGG_MUNINN_URL=http://127.0.0.1:42069   # your Muninn instance
 export YGG_MUNINN_TOKEN=...                     # its auth token
-scripts/ygg_quality_gate.py
+yggdrasil/ygg_quality_gate.py
 ```
 
-The client (`scripts/ygg_core.py`) is engine-agnostic. See
+The client (`yggdrasil/ygg_core.py`) is engine-agnostic. See
 `docs/backend-boundary.md` for the contract a Muninn instance must satisfy
 (notably `PUT /update` accepting `metadata_patch` and `archived`).

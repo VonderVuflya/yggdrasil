@@ -71,24 +71,27 @@ Nada de "déjame recordarte lo que hicimos ayer". Simplemente está ahí.
 > **Requisitos:** macOS, Python 3.10+. Opcional (para búsqueda semántica): [Ollama](https://ollama.com).
 
 ```bash
-git clone https://github.com/VonderVuflya/yggdrasil.git
-cd yggdrasil
-scripts/install.sh install          # interactive wizard — detects your hardware,
-                                    # recommends models, sets up the background service
+# una línea, sin clonar — instala el comando `ygg` y ejecuta la configuración guiada (vía uv):
+uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg install
 ```
 
-Eso es todo. El instalador:
-1. 🔍 detecta tu CPU/RAM/GPU y **recomienda modelos que se ajusten a tu máquina**,
+…o con [pipx](https://pipx.pypa.io):
+
+```bash
+pipx install git+https://github.com/VonderVuflya/yggdrasil.git && ygg install
+```
+
+Eso es todo. `ygg install`:
+1. 🔍 detecta tu CPU/RAM/GPU y **recomienda modelos que se ajusten a tu máquina** (o elige `none` para una configuración cero, solo léxica),
 2. 🔑 genera un token de autenticación privado (nunca codificado en el código),
 3. 🛎️ instala un servicio en segundo plano siempre activo (se inicia automáticamente al iniciar sesión, se reinicia tras un fallo),
 4. 🤝 registra las herramientas de memoria con **Claude Code y Codex**,
 5. 🪝 (opcional) habilita un hook de inicio de sesión que inyecta automáticamente la memoria de tu proyecto.
 
-¿Prefieres simplemente probar el motor sin instalar un servicio?
+Comprueba la instalación cuando quieras con `ygg doctor`; actualiza después con `ygg update`. ¿Prefieres simplemente probar el motor sin instalar un servicio?
 
 ```bash
-python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite   # runs on :42069
-scripts/run_gates.sh                                                # see all checks pass
+uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg serve --reset --db /tmp/ygg.sqlite   # se ejecuta en :42069
 ```
 
 ## 🧠 Cómo funciona
@@ -130,7 +133,7 @@ Yggdrasil es **memoria + herramientas** — la *inteligencia* es tu LLM. Solo se
 
 ## 🛠️ Comandos
 
-**CLI — `scripts/ygg.py`** (operaciones de memoria orientadas al agente)
+**Operaciones de memoria — `ygg <command>`** (para agentes)
 
 | Comando | Qué hace |
 | --- | --- |
@@ -141,7 +144,7 @@ Yggdrasil es **memoria + herramientas** — la *inteligencia* es tu LLM. Solo se
 | `remember --project P --type debugging_lesson --content "…"` | Guarda una memoria duradera (protegida contra secretos, deduplicada) |
 | `materialize --id ID --project P` | Exporta una memoria a una nota de Obsidian |
 
-**Servicio — `scripts/install.sh`** (ciclo de vida y configuración)
+**Servicio y configuración — `ygg <command>`** (ciclo de vida)
 
 | Comando | Qué hace |
 | --- | --- |
@@ -156,9 +159,9 @@ Yggdrasil es **memoria + herramientas** — la *inteligencia* es tu LLM. Solo se
 
 ## 🔌 Úsalo con tu agente
 
-- **Claude Code** — tras `install.sh install`, las herramientas quedan registradas (`/mcp` muestra `yggdrasil`) y el hook de SessionStart inyecta la memoria automáticamente. Solo abre un proyecto y ponte a trabajar.
+- **Claude Code** — tras `ygg install`, las herramientas quedan registradas (`/mcp` muestra `yggdrasil`) y el hook de SessionStart inyecta la memoria automáticamente. Solo abre un proyecto y ponte a trabajar.
 - **Codex** — también registrado; aprueba la llamada a la herramienta `ygg_*` una vez por sesión.
-- **Cualquier host MCP** — apúntalo a `scripts/ygg_mcp_server.py` (stdio) con `YGG_MUNINN_URL` + `YGG_MUNINN_TOKEN`.
+- **Cualquier host MCP** — apúntalo a `ygg mcp` (stdio) con `YGG_MUNINN_URL` + `YGG_MUNINN_TOKEN`.
 
 Dale una personalidad — edita `~/.yggdrasil/identity.json`:
 

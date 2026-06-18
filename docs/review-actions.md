@@ -1,13 +1,13 @@
 # Memory Review Actions
 
-`scripts/ygg_review_actions.py` turns review queue issues into explicit proposed actions.
+`yggdrasil/ygg_review_actions.py` turns review queue issues into explicit proposed actions.
 
 It creates action proposals, records user-approved decisions, and can apply approved archive actions through an explicit audited flow.
 
 ## Generate Proposals
 
 ```bash
-scripts/ygg_review_actions.py propose --review-report reports/review-queue-1779823862.json
+yggdrasil/ygg_review_actions.py propose --review-report reports/review-queue-1779823862.json
 ```
 
 Outputs:
@@ -18,7 +18,7 @@ Outputs:
 ## Record A Decision
 
 ```bash
-scripts/ygg_review_actions.py record \
+yggdrasil/ygg_review_actions.py record \
   --action-id archive-3-42285633 \
   --decision approve \
   --reason "Exact duplicate of canonical memory"
@@ -33,7 +33,7 @@ Decisions append to:
 Dry-run is the default. It reads the action bundle and audit log, then previews only approved `archive` actions:
 
 ```bash
-scripts/ygg_review_actions.py apply \
+yggdrasil/ygg_review_actions.py apply \
   --actions-report reports/review-actions-1780001070.json \
   --dry-run \
   --user-id dense-user
@@ -42,7 +42,7 @@ scripts/ygg_review_actions.py apply \
 Execute requires an explicit flag:
 
 ```bash
-scripts/ygg_review_actions.py apply \
+yggdrasil/ygg_review_actions.py apply \
   --actions-report reports/review-actions-1780001070.json \
   --execute \
   --user-id dense-user
@@ -81,7 +81,7 @@ The review queue ignores memories already marked archived via either top-level `
 ## Repeatable Gate
 
 ```bash
-scripts/ygg_review_apply_gate.py
+yggdrasil/ygg_review_apply_gate.py
 ```
 
 This creates an isolated duplicate pair, runs queue/propose/approve/dry-run/execute, and writes `reports/review-apply-gate-*.json`.

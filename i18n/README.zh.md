@@ -71,24 +71,29 @@ $ cd ~/projects/checkout-api && claude        # a brand-new session
 > **环境要求:** macOS、Python 3.10+。可选(用于语义搜索):[Ollama](https://ollama.com)。
 
 ```bash
-git clone https://github.com/VonderVuflya/yggdrasil.git
-cd yggdrasil
-scripts/install.sh install          # interactive wizard — detects your hardware,
-                                    # recommends models, sets up the background service
+# 一行命令，无需 clone —— 安装 `ygg` 命令并运行引导式安装（通过 uv）:
+uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg install
 ```
 
-就这么简单。安装程序会:
-1. 🔍 检测你的 CPU/RAM/GPU,并**推荐适合你机器的模型**,
+…或使用 [pipx](https://pipx.pypa.io):
+
+```bash
+pipx install git+https://github.com/VonderVuflya/yggdrasil.git && ygg install
+```
+
+就这样。`ygg install` 会:
+1. 🔍 检测你的 CPU/RAM/GPU,并**推荐适合你机器的模型**（或选择 `none` 进行零配置、仅词法的安装）,
 2. 🔑 生成一个私有的鉴权 token(绝不硬编码),
 3. 🛎️ 安装一个常驻的后台服务(登录时自动启动,崩溃后自动重启),
 4. 🤝 把记忆工具注册到 **Claude Code 和 Codex**,
 5. 🪝 (可选)启用一个会话启动钩子,自动注入你的项目记忆。
 
+随时用 `ygg doctor` 检查安装；之后用 `ygg update` 升级。
+
 只想先试试引擎本身,不安装服务?
 
 ```bash
-python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite   # runs on :42069
-scripts/run_gates.sh                                                # see all checks pass
+uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg serve --reset --db /tmp/ygg.sqlite   # 运行于 :42069
 ```
 
 ## 🧠 工作原理
@@ -130,7 +135,7 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
 
 ## 🛠️ 命令
 
-**CLI —— `scripts/ygg.py`**(面向助手的记忆操作)
+**内存操作 —— `ygg <command>`**（面向 agent）
 
 | 命令 | 作用 |
 | --- | --- |
@@ -141,7 +146,7 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
 | `remember --project P --type debugging_lesson --content "…"` | 保存一条持久记忆(有密钥防护,会去重) |
 | `materialize --id ID --project P` | 把一条记忆导出为一份 Obsidian 笔记 |
 
-**服务 —— `scripts/install.sh`**(生命周期与初始化)
+**服务与设置 —— `ygg <command>`**（生命周期）
 
 | 命令 | 作用 |
 | --- | --- |
@@ -156,9 +161,9 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
 
 ## 🔌 搭配你的助手使用
 
-- **Claude Code**——执行 `install.sh install` 之后,工具就已注册(`/mcp` 会显示 `yggdrasil`),SessionStart 钩子会自动注入记忆。打开一个项目直接干活即可。
+- **Claude Code**——在 `ygg install` 之后,工具就已注册(`/mcp` 会显示 `yggdrasil`),SessionStart 钩子会自动注入记忆。打开一个项目直接干活即可。
 - **Codex**——同样已注册;每个会话里批准一次 `ygg_*` 工具调用。
-- **任何 MCP 宿主**——把它指向 `scripts/ygg_mcp_server.py`(stdio),并配上 `YGG_MUNINN_URL` 与 `YGG_MUNINN_TOKEN`。
+- **任何 MCP 宿主**——将其指向 `ygg mcp`（stdio）,并配上 `YGG_MUNINN_URL` 与 `YGG_MUNINN_TOKEN`。
 
 给它设定个性——编辑 `~/.yggdrasil/identity.json`:
 

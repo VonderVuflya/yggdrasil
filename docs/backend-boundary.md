@@ -3,7 +3,7 @@
 Yggdrasil is a workflow/governance layer. The durable memory engine sits behind
 a small, explicit, testable contract.
 
-- **Default engine:** Yggdrasil's own `scripts/ygg_memory_server.py` (stdlib
+- **Default engine:** Yggdrasil's own `yggdrasil/ygg_memory_server.py` (stdlib
   SQLite + FTS5, zero heavy dependencies). Shipped, no external service.
 - **Optional engine:** an external Muninn instance (Apache-2.0, third party).
   Reached through the same REST client; selected via `YGG_MUNINN_URL`.
@@ -13,7 +13,7 @@ engine-specific: the same gates pass against either engine.
 
 ## Contract
 
-The engine must support (`MemoryBackend` protocol in `scripts/ygg_core.py`):
+The engine must support (`MemoryBackend` protocol in `yggdrasil/ygg_core.py`):
 
 - `health`
 - `add`
@@ -40,8 +40,8 @@ Archive metadata must also include:
 The engine-agnostic REST client and the `MemoryBackend` protocol live in:
 
 ```text
-scripts/ygg_core.py        # MemoryBackend protocol + RestMemoryBackend (alias: MuninnBackend)
-scripts/ygg_memory_server.py  # the default engine implementing the contract
+yggdrasil/ygg_core.py        # MemoryBackend protocol + RestMemoryBackend (alias: MuninnBackend)
+yggdrasil/ygg_memory_server.py  # the default engine implementing the contract
 ```
 
 Review queue, review actions, and the gates use the client instead of building

@@ -1,6 +1,6 @@
 # Memory Review Queue
 
-`scripts/ygg_review_queue.py` scans memories and creates a human review queue.
+`yggdrasil/ygg_review_queue.py` scans memories and creates a human review queue.
 
 It is intentionally conservative: it does not delete, update, or archive memories. It only reports candidates.
 
@@ -15,20 +15,20 @@ It is intentionally conservative: it does not delete, update, or archive memorie
 Start the engine first:
 
 ```bash
-python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite
+python3 yggdrasil/ygg_memory_server.py --reset --db /tmp/ygg.sqlite
 ```
 
 Then:
 
 ```bash
-scripts/ygg_review_queue.py --user-id demo-user
+yggdrasil/ygg_review_queue.py --user-id demo-user
 ```
 
 Dense demo:
 
 ```bash
-YGG_EMBED_MODEL=all-minilm python3 scripts/ygg_memory_server.py --reset --db /tmp/ygg.sqlite
-YGG_USER_ID=dense-user scripts/ygg_review_queue.py --user-id dense-user
+YGG_EMBED_MODEL=all-minilm python3 yggdrasil/ygg_memory_server.py --reset --db /tmp/ygg.sqlite
+YGG_USER_ID=dense-user yggdrasil/ygg_review_queue.py --user-id dense-user
 ```
 
 Outputs:

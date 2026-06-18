@@ -1,6 +1,6 @@
 # Yggdrasil MVP CLI
 
-`scripts/ygg.py` is a thin facade over Muninn REST. It exists so agents do not need to remember Muninn's exact payload shape.
+`yggdrasil/ygg.py` is a thin facade over Muninn REST. It exists so agents do not need to remember Muninn's exact payload shape.
 
 ## Environment
 
@@ -16,13 +16,13 @@ export YGG_USER_ID="global_user"
 Health:
 
 ```bash
-scripts/ygg.py health
+yggdrasil/ygg.py health
 ```
 
 Save a project-scoped memory:
 
 ```bash
-scripts/ygg.py remember \
+yggdrasil/ygg.py remember \
   --project test-a \
   --type debugging_lesson \
   --json-file examples/layout-overflow-debugging-lesson.json
@@ -31,19 +31,19 @@ scripts/ygg.py remember \
 Search before non-trivial work:
 
 ```bash
-scripts/ygg.py bootstrap --project test-a --query "mobile layout overflow"
+yggdrasil/ygg.py bootstrap --project test-a --query "mobile layout overflow"
 ```
 
 Search directly:
 
 ```bash
-scripts/ygg.py search --project test-a --query "scrollWidth clientWidth chips"
+yggdrasil/ygg.py search --project test-a --query "scrollWidth clientWidth chips"
 ```
 
 Materialize a memory to Obsidian Markdown:
 
 ```bash
-scripts/ygg.py materialize \
+yggdrasil/ygg.py materialize \
   --id MEMORY_ID \
   --project test-a \
   --output-dir vault/04-learnings
