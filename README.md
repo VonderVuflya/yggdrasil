@@ -233,6 +233,17 @@ It's an honest <b>alpha</b>: the happy path and the full governance loop are cov
 
 ## 🆚 Yggdrasil vs alternatives
 
+Most "AI memory/context" tools own a **different layer** of the stack. The one nobody filled — **durable, cross-session, cross-agent memory of _your own_ work** — is exactly where Yggdrasil sits. It doesn't compete with these; it's the memory they all plug into.
+
+| Tool | The layer it owns | Overlap with Yggdrasil | Better together |
+| --- | --- | --- | --- |
+| **[Context7](https://github.com/upstash/context7)** | fresh public **library docs** (read-only) | none | Context7 gives a library's current API; Yggdrasil recalls *your* decisions & lessons |
+| **[autoresearch](https://github.com/karpathy/autoresearch)** | autonomous **experiment loop** (edit → train → measure → keep/revert) | none — it's the *loop*, not memory | Yggdrasil is the long-term memory the loop lacks: recall what you already tried, remember each result across nights & forks → [integration](./integrations/autoresearch/) |
+| **context-mode** & in-context compressors | **in-session** context compaction / sandboxed analysis | none — per session | Yggdrasil persists the *conclusions* across sessions, tools & machines |
+| **plain LLM memory** | per-session scratch | partial | Yggdrasil is durable, cross-project, governed & local |
+
+Capability matrix:
+
 | | **Yggdrasil** | Context7 | Plain LLM memory |
 | --- | --- | --- | --- |
 | Knows **your** decisions/lessons | ✅ | ❌ | ⚠️ within one session |
@@ -243,7 +254,7 @@ It's an honest <b>alpha</b>: the happy path and the full governance loop are cov
 | Local & private | ✅ | ☁️ hosted | depends |
 | Self-consolidating | ✅ | ❌ | ❌ |
 
-**TL;DR:** Context7 = correct API of *someone else's* library. Yggdrasil = memory of *your own* work. Use both.
+**TL;DR:** these tools fetch docs, run experiments, or compress one session. **Yggdrasil is the durable memory of _your own_ work that they were all missing — use it *with* them and you only win.**
 
 ## 🗺️ Roadmap
 
