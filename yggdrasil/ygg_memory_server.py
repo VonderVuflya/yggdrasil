@@ -65,6 +65,13 @@ FUSION_MODE = os.environ.get("YGG_FUSION", "score")
 FUSION_W_LEX = float(os.environ.get("YGG_FUSION_W_LEX", "0.3"))
 FUSION_W_VEC = float(os.environ.get("YGG_FUSION_W_VEC", "1.0"))
 
+# Usage-weighted ranking: how strongly a memory's access frequency boosts its
+# score. Saturating (access/(access+scale)) so frequently-recalled memories rise
+# but can't run away; exactly 0 for never-accessed memories, so a fresh DB (and
+# the eval harness, which never logs access) is never perturbed.
+W_USAGE = float(os.environ.get("YGG_W_USAGE", "0.3"))
+USAGE_SCALE = float(os.environ.get("YGG_USAGE_SCALE", "5"))
+
 # Small stopword set so natural-language paraphrase queries still match on the
 # content words rather than being diluted by glue words.
 STOPWORDS = {
@@ -145,6 +152,8 @@ class MemoryStore:
         existing_cols = {r[1] for r in cur.execute("PRAGMA table_info(memories)").fetchall()}
         if "embedding" not in existing_cols:
             cur.execute("ALTER TABLE memories ADD COLUMN embedding TEXT")
+        if "last_accessed_at" not in existing_cols:
+            cur.execute("ALTER TABLE memories ADD COLUMN last_accessed_at REAL")
         use_fts = True
         try:
             cur.execute(
@@ -180,6 +189,7 @@ class MemoryStore:
             "importance": row["importance"],
             "created_at": row["created_at"],
             "access_count": row["access_count"],
+            "last_accessed_at": row["last_accessed_at"] if "last_accessed_at" in row.keys() else None,
             "archived": bool(row["archived"]),
             "metadata": metadata,
         }
@@ -362,7 +372,9 @@ class MemoryStore:
             importance = float(record.get("importance") or 0.5)
             age_days = max(0.0, (now - float(record.get("created_at") or now)) / 86400.0)
             recency = 0.5 * (0.5 ** (age_days / 30.0))  # 30-day half-life, max 0.5
-            record["lexical_score"] = round(relevance + 0.25 * importance + recency, 6)
+            access = float(record.get("access_count") or 0.0)
+            usage = W_USAGE * (access / (access + USAGE_SCALE)) if access > 0 else 0.0
+            record["lexical_score"] = round(relevance + 0.25 * importance + recency + usage, 6)
             records[record["id"]] = record
             lex_scored.append(record)
         lex_scored.sort(key=lambda r: r["lexical_score"], reverse=True)
@@ -417,6 +429,22 @@ class MemoryStore:
             rec["score"] = round(score, 6)
             result.append(rec)
         return result[:limit]
+
+    def record_access(self, ids: list[str]) -> None:
+        """Log that these memories were surfaced (the usage signal feeding
+        usage-weighted ranking). Called by the HTTP /search route, NOT by
+        search() itself — so direct callers (e.g. the eval harness) stay
+        side-effect-free and deterministic."""
+        ids = [i for i in (ids or []) if i]
+        if not ids:
+            return
+        now = time.time()
+        with self._lock:
+            self._conn.executemany(
+                "UPDATE memories SET access_count = access_count + 1, last_accessed_at = ? WHERE id = ?",
+                [(now, i) for i in ids],
+            )
+            self._conn.commit()
 
     def reindex_embeddings(self) -> int:
         """Embed any rows missing an embedding — self-heals after a cold-start
@@ -525,6 +553,7 @@ class Handler(BaseHTTPRequestHandler):
                 filters=body.get("filters") if isinstance(body.get("filters"), dict) else {},
                 namespaces=body.get("namespaces") if isinstance(body.get("namespaces"), list) else None,
             )
+            self.store.record_access([r.get("id") for r in data])
             self._send(200, {"success": True, "data": data})
             return
         self._send(404, {"success": False, "error": f"not found: {parsed.path}"})

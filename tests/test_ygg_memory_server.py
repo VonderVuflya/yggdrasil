@@ -175,6 +175,42 @@ class MemoryStoreTests(unittest.TestCase):
             [],
         )
 
+    def test_record_access_increments_count_and_timestamp(self) -> None:
+        rec = self.add_memory("Usage logging target memory")
+        before = self.store.get_all(user_id="user-1", limit=10, namespace=None)[0]
+        self.assertEqual(before["access_count"], 0)
+        self.assertIsNone(before["last_accessed_at"])
+
+        self.store.record_access([rec["id"]])
+        self.store.record_access([rec["id"]])
+
+        after = self.store.get_all(user_id="user-1", limit=10, namespace=None)[0]
+        self.assertEqual(after["access_count"], 2)
+        self.assertIsNotNone(after["last_accessed_at"])
+
+    def test_usage_boost_ranks_frequently_accessed_higher(self) -> None:
+        a = self.add_memory("alpha beta gamma delta")
+        b = self.add_memory("alpha epsilon zeta eta")
+
+        # Frequently recall b — the usage signal should lift it above the tie.
+        for _ in range(10):
+            self.store.record_access([b["id"]])
+
+        results = self.store.search(
+            query="alpha", user_id="user-1", limit=5, filters={}, namespaces=None
+        )
+        self.assertEqual({r["id"] for r in results}, {a["id"], b["id"]})
+        self.assertEqual(results[0]["id"], b["id"])
+
+    def test_search_is_side_effect_free(self) -> None:
+        # search() must not log access (keeps the eval harness deterministic);
+        # only record_access — called by the HTTP layer — bumps the counter.
+        self.add_memory("side effect free search memory")
+        self.store.search(query="search memory", user_id="user-1", limit=5, filters={}, namespaces=None)
+        stored = self.store.get_all(user_id="user-1", limit=10, namespace=None)[0]
+        self.assertEqual(stored["access_count"], 0)
+        self.assertIsNone(stored["last_accessed_at"])
+
     def test_tokenize_lowercases_and_drops_stopwords_and_one_char_tokens(self) -> None:
         self.assertEqual(tokenize("The A QUICK x fox"), ["quick", "fox"])
 

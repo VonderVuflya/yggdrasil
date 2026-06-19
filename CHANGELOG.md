@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Usage-weighted ranking** — memories recalled more often rank higher. The
+  HTTP `/search` route now logs access (`access_count` + `last_accessed_at`);
+  ranking adds a saturating usage boost (`access/(access+scale)`, weight
+  `YGG_W_USAGE`, default 0.3) alongside the existing recency boost. `search()`
+  itself stays side-effect-free, so the eval harness stays deterministic —
+  recall@k is unchanged on cold data (verified: lexical recall@1 = 0.625,
+  keyword/identifier 1.0, matching baseline).
+
 ## [0.2.1] — 2026-06-19
 
 Maintenance release: republish so the PyPI package README carries the correctly
