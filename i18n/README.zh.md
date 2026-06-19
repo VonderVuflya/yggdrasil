@@ -1,7 +1,7 @@
 <h1 align="center">🌳 Yggdrasil</h1>
 
 <p align="center"><b>为你所有的 AI 编程助手提供一份共享、持久的记忆。</b><br/>
-让 Claude Code、Codex 以及任何 MCP 宿主，在不同会话、不同工具、不同项目之间都记得你的项目——记得决策、教训和进度。</p>
+让 Claude Code、Codex 以及任何 MCP 宿主，跨越会话、工具和项目，都记得你的决策、教训和项目进度。</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-Elastic%202.0-blue.svg" alt="Elastic License 2.0">
@@ -15,9 +15,9 @@
 <p align="center">
   <a href="#-快速开始">快速开始</a> ·
   <a href="#-工作原理">工作原理</a> ·
-  <a href="#%EF%B8%8F-命令">命令</a> ·
-  <a href="#-常见问题">常见问题</a> ·
-  <a href="#-yggdrasil-与同类方案对比">对比</a>
+  <a href="#-yggdrasil-与同类方案对比">对比</a> ·
+  <a href="#-命令">命令</a> ·
+  <a href="#-常见问题">常见问题</a>
 </p>
 
 <p align="center">
@@ -30,13 +30,12 @@
 
 ---
 
-每开一个新对话，你的 AI 都会忘得一干二净。于是你只能一遍又一遍地重新解释项目、决策、那些坑——每次都讲，每个工具里都讲。**Yggdrasil 是一个小巧、常驻的记忆大脑，任何助手都能接入它。** 在任何项目里、用任何 AI 开一个新会话，它都已经知道你定过什么、出过什么问题、还有什么没解决——而且它会在后台悄悄地从你的工作中学习。
+每开一个新对话，你的 AI 都会忘得一干二净。于是你只能一遍又一遍地重新解释项目、决策、那些坑——每次都讲，每个工具里都讲。**Yggdrasil 是一个小巧、常驻的记忆大脑，任何助手都能接入它。** 在任何项目里、用任何 AI 开一个新会话，它都已经知道你定过什么、出过什么问题、还有什么没解决——而且它会在后台持续学习。
 
 ```text
 $ cd ~/projects/checkout-api && claude        # a brand-new session
 
 🌳 Yggdrasil  (injected automatically at session start)
-   You are Yggdrasil — your persistent assistant across tools and projects.
    Open follow-ups & status:
    • [project_status] payments refactor: idempotency keys added; open: e2e tests
    Durable memory for `checkout-api`:
@@ -50,57 +49,47 @@ $ cd ~/projects/checkout-api && claude        # a brand-new session
 
 不用再说“让我提醒你一下我们昨天做了什么”。它本来就在那儿。
 
-## ❌ 没有 Yggdrasil 时
+## 为什么
 
-- 🔁 每开一个新对话，你都要把项目背景重新讲给 AI 听。
-- 🧩 在一个项目里学到的教训，永远传不到下一个项目。
-- 🤖 从 Claude Code 换到 Codex → 新工具对此一无所知。
-- 🗑️ 来之不易的调试心得，会随着会话结束烟消云散。
+**没有 Yggdrasil 时**，你在每个新对话里都要重新解释背景，一个项目里的教训永远传不到下一个项目，从 Claude Code 换到 Codex 就得从零开始，来之不易的调试心得也会随会话一同消逝。
 
-## ✅ 有了 Yggdrasil 后
+**有了 Yggdrasil：**
 
 - 🧠 **持久记忆**——决策、教训和进度能跨越多个会话留存下来。
 - 🔌 **众多助手，同一个大脑**——Claude Code、Codex 以及任何 MCP 宿主共享同一份记忆。
-- 🌐 **跨项目回忆**——*“这看起来跟你在项目 B 里做过的事很像——要复用吗?”*
-- 🌱 **自我学习**——一个本地模型在后台整合记忆(不消耗任何 API token)。
-- 🪪 **一个灵魂**——给它起个名字、设定个性;它在每个工具里都以同样的形象出现。
-- 🔒 **100% 本地且私密**——你的记忆就在你自己的机器上。无需云端,无需账号。
+- 🌐 **跨项目回忆**——*“这看起来跟你在项目 B 里做过的事很像——要复用吗？”*
+- 🌱 **自我学习**——一个本地模型在后台整合记忆（不消耗任何 API token）。
+- 🪪 **一个灵魂**——给它起个名字、设定个性；它在每个工具里都以同样的形象出现。
+- 🔒 **100% 本地且私密**——你的记忆就在你自己的机器上。无需云端，无需账号。
 
 ## 🚀 快速开始
 
-> **环境要求:** macOS、Python 3.10+ *（或让 `uv`/`npx` 替你获取 Python）*。可选(用于语义搜索):[Ollama](https://ollama.com)。
+> **环境要求：** macOS（Linux/Windows 即将支持）、Python 3.10+——或者让 `uv`/`npx` 替你获取 Python。语义搜索是可选的，使用一个本地 [Ollama](https://ollama.com) 模型。
 
-用你已经在用的工具安装即可 —— **每个渠道安装的都是同一个引擎：**
+```bash
+uvx --from yggdrasil-memory ygg install      # recommended
+```
+
+<details>
+<summary>更想用 npm、pipx、pip、Homebrew 或源码？（同一个引擎）</summary>
 
 | 工具 | 命令 |
 | --- | --- |
-| **uv** _(推荐)_ | `uvx --from yggdrasil-memory ygg install` |
 | **npm / npx** | `npx yggdrasil-memory install` |
 | **pipx** | `pipx install yggdrasil-memory && ygg install` |
 | **pip** | `pip install yggdrasil-memory && ygg install` |
 | **Homebrew** _(macOS)_ | `brew install VonderVuflya/tap/yggdrasil && ygg install` |
 | **从源码** | `uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg install` |
 
-> 各注册表渠道会在发布后陆续可用（参见 [RELEASING.md](../RELEASING.md)）；**从源码** 这一行现在就能用于本仓库。`npx` 和 `uvx` 可以替你获取 Python。
+</details>
 
-就这样。`ygg install` 会:
-1. 🔍 检测你的 CPU/RAM/GPU,并**推荐适合你机器的模型**（或选择 `none` 进行零配置、仅词法的安装）,
-2. 🔑 生成一个私有的鉴权 token(绝不硬编码),
-3. 🛎️ 安装一个常驻的后台服务(登录时自动启动,崩溃后自动重启),
-4. 🤝 把记忆工具注册到 **Claude Code 和 Codex**,
-5. 🪝 (可选)启用一个会话启动钩子,自动注入你的项目记忆。
+`ygg install` 是一次性的引导式设置：它会检测你的硬件并**推荐一个适合的本地模型**（或选择 `none` 进行零配置、仅词法的安装），生成一个私有的鉴权 token，安装一个**常驻的后台服务**，并**把工具注册到 Claude Code 和 Codex**。随时用 `ygg doctor` 检查它；用 `ygg update` 升级。
 
-随时用 `ygg doctor` 检查安装；之后用 `ygg update` 升级。
-
-只想先试试引擎本身,不安装服务?
-
-```bash
-uvx --from git+https://github.com/VonderVuflya/yggdrasil.git ygg serve --reset --db /tmp/ygg.sqlite   # 运行于 :42069
-```
+只想先试试引擎，不安装服务？`uvx --from yggdrasil-memory ygg serve --reset --db /tmp/ygg.sqlite`。
 
 ## 🧠 工作原理
 
-Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只负责确保在恰当的时刻,把恰当的记忆送到恰当的助手面前。
+Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只负责确保在恰当的时刻，把恰当的记忆送到恰当的助手面前。
 
 ```text
    Claude Code / Codex / any MCP host
@@ -117,151 +106,119 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
           📓 Obsidian vault (human-readable, editable)
 ```
 
-- **引擎**——一个仅依赖标准库、运行在 SQLite + FTS5 之上的 HTTP 服务器。零依赖,约 21 MB 内存。
-- **检索**——默认采用词法检索;加上一个本地嵌入模型即可实现语义检索与跨语言搜索。
-- **治理**——重复、过期或相互冲突的记忆会被挑出来供你审查;所有改动都是非破坏性的(归档,绝不删除)。
+- **引擎**——一个仅依赖标准库、运行在 SQLite + FTS5 之上的 HTTP 服务器。零依赖，约 21 MB 内存。
+- **检索**——默认采用词法检索；加上一个本地嵌入模型即可实现语义检索与跨语言搜索。被频繁回忆和置顶的记忆排名更靠前。
+- **治理**——重复 / 冲突的记忆会被挑出来供你审查；所有改动都是非破坏性的（归档，绝不删除）。
 - **Obsidian**——每一条记忆同时也是一份可读、可编辑的 Markdown 笔记。
 
-## ⭐ 功能特性
+## 🆚 Yggdrasil 与同类方案对比
 
-- 🧠 **持久的跨会话记忆**,适用于任何兼容 MCP 的助手。
-- 🌐 **跨项目回忆** + 一条主动的“你以前解决过这个”契约。
-- 🔎 **混合检索**——BM25 + 可选的稠密嵌入,二者融合;支持跨语言(如 EN↔RU)。
-- 🪪 **身份 / 人格**在每个会话中注入(那种“贾维斯”般的感觉)。
-- 📌 **进度与待办**在会话开始时呈现——*“X 现在进展如何?”*能即刻得到答案。
-- 🌱 **后台自我学习**——一个小型本地模型整合记忆(默认仅提议,安全可控)。
-- 🧹 **治理闭环**——审查队列 + 非破坏性的归档/合并。
-- 📓 **Obsidian 物化**——可读、可编辑、可移植。
-- 🔒 **本地优先且私密**——无需云端、无需账号,你的数据原地不动。
-- 🪶 **零硬性依赖**——纯 Python 标准库;可选的本地模型通过 Ollama 接入。
+这些工具各自占据 AI 上下文栈中**不同的一层**。而那一层无人填补——**对你自己工作的持久、跨会话、跨助手的记忆**——正是 Yggdrasil 所处的位置。它不与它们竞争；它是它们全都能接入的那份记忆。
 
-## 🛠️ 命令
+| 工具 | 它所占据的层 | 为什么要*和* Yggdrasil 一起用…… |
+| --- | --- | --- |
+| **[context-mode](https://github.com/mksglu/context-mode)** | 让**实时上下文窗口**保持精简——沙箱化工具输出、“在代码中思考”、会话内连续性。本质上是临时性的（“新会话 = 一张白纸”）。 | context-mode 修剪的是*今天*的会话；Yggdrasil 是它刻意丢弃的那份持久记忆。时间尺度不同——两个一起跑。 |
+| **[Context7](https://github.com/upstash/context7)** | 最新的**公开库文档**（最新的 React/Stripe API），只读。 | Context7 了解*库*的 API；Yggdrasil 了解*你的*决策与坑。 |
+| **[autoresearch](https://github.com/karpathy/autoresearch)** | 一个自主的**实验循环**（编辑 → 运行 → 测量 → 保留/回退）。 | 这个循环每次都是冷启动；Yggdrasil 给它长期记忆，记住它已经试过什么 → [集成](../integrations/autoresearch/)。 |
+| **普通 LLM“记忆”** | 一个按会话的草稿区，一次只服务一个工具。 | Yggdrasil 是持久、跨项目、跨助手、受治理且本地的。 |
 
-**内存操作 —— `ygg <command>`**（面向 agent）
+**一句话总结：** 其他工具抓取文档、运行实验，或压缩单个会话。**Yggdrasil 是它们全都缺失的那份对你自己工作的持久记忆——把它和它们一起用，你只会赢。**
 
-| 命令 | 作用 |
-| --- | --- |
-| `health` | 检查引擎是否在运行 |
-| `bootstrap --project P` | 开始工作前拉取某个项目的记忆 |
-| `search --project P --query "…"` | 项目范围内的搜索(`--type`、`--limit`、`--json`) |
-| `recall --query "…"` | **跨项目**搜索——“我在哪儿做过这件事吗?” |
-| `remember --project P --type debugging_lesson --content "…"` | 保存一条持久记忆(有密钥防护,会去重) |
-| `materialize --id ID --project P` | 把一条记忆导出为一份 Obsidian 笔记 |
+## 🧰 命令
 
-**服务与设置 —— `ygg <command>`**（生命周期）
+助手能看到六个 MCP 工具：`ygg_health`、`ygg_bootstrap`、`ygg_search`、`ygg_recall`、`ygg_remember`、`ygg_materialize`。在 `ygg install` 之后，它们会自动注册到 Claude Code 和 Codex——只管打开一个项目开始干活。
+
+<details>
+<summary>完整的 <code>ygg</code> CLI 参考</summary>
+
+**内存操作**
 
 | 命令 | 作用 |
 | --- | --- |
-| `install` | 引导式向导 → 后台服务 + MCP 注册 |
-| `recommend` | 显示与硬件匹配的模型目录 |
-| `status` · `start` · `stop` · `restart` · `logs` | 管理这个常驻守护进程 |
-| `hooks` · `unhooks` | 启用/停用 SessionStart 自动 bootstrap 钩子 |
-| `consolidate` · `unconsolidate` | 安排/移除后台记忆整合 |
-| `token` · `uninstall` | 打印鉴权 token · 移除服务 + 注册 |
+| `ygg recall --query "…"` | **跨项目**搜索——“我在哪儿做过这件事吗？” |
+| `ygg search --project P --query "…"` | 项目范围内的搜索（`--type`、`--tag`、`--limit`、`--json`） |
+| `ygg remember --project P --type debugging_lesson --content "…"` | 保存一条持久记忆（有密钥防护，会去重；用 `--tag` 打标签） |
+| `ygg bootstrap --project P` | 开始工作前拉取某个项目的记忆 |
+| `ygg pin --id ID` · `ygg unpin --id ID` | 置顶一条记忆，让它可靠地浮现出来 |
+| `ygg supersede --id ID` | 归档一条被更新记忆所替代的过期记忆 |
+| `ygg materialize --id ID --project P` | 把一条记忆导出为一份 Obsidian 笔记 |
 
-**MCP 工具**(助手所看到的):`ygg_health`、`ygg_bootstrap`、`ygg_search`、`ygg_recall`、`ygg_remember`、`ygg_materialize`。
+**服务与设置**
 
-## 🔌 搭配你的助手使用
+| 命令 | 作用 |
+| --- | --- |
+| `ygg install` · `ygg setup` | 引导式设置 → 后台服务 + MCP 注册 |
+| `ygg doctor` · `ygg update` | 诊断安装 · 重新部署最新代码 |
+| `ygg status` · `start` · `stop` · `restart` · `logs` | 管理这个常驻守护进程 |
+| `ygg hooks` · `unhooks` | 启用/停用 SessionStart 自动 bootstrap 钩子 |
+| `ygg recommend` | 显示与硬件匹配的模型目录 |
+| `ygg token` · `uninstall` | 打印鉴权 token · 移除服务 + 注册 |
 
-- **Claude Code**——在 `ygg install` 之后,工具就已注册(`/mcp` 会显示 `yggdrasil`),SessionStart 钩子会自动注入记忆。打开一个项目直接干活即可。
-- **Codex**——同样已注册;每个会话里批准一次 `ygg_*` 工具调用。
-- **任何 MCP 宿主**——将其指向 `ygg mcp`（stdio）,并配上 `YGG_ENGINE_URL` 与 `YGG_ENGINE_TOKEN`。
-
-给它设定个性——编辑 `~/.yggdrasil/identity.json`:
+给它设定个性——编辑 `~/.yggdrasil/identity.json`：
 
 ```json
 { "name": "Jarvis", "persona": "concise, proactive, dry wit", "user_facts": ["prefers TypeScript", "ships small PRs"] }
 ```
 
-## 📊 占用与质量
-
-**占用**(实测,13 条记忆):**约 21 MB 内存**、**约 0% 空闲 CPU**、**零依赖**(Python 3.10+ 标准库)。磁盘占用约为每条记忆几十 KB。稠密搜索是可选项,会额外加上一个本地 Ollama 模型(如 `all-minilm`,45 MB)。
-
-**检索质量**(`eval/ygg_eval.py`,recall@1):
-
-| 模式 | recall@1 | 同义改写 | 跨语言(EN→RU) |
-| --- | --- | --- | --- |
-| lexical(默认) | 0.77 | 0.63 | 0.00 |
-| dense · `all-minilm`(45 MB,EN) | 0.83 | 0.88 | 0.00 |
-| dense · `paraphrase-multilingual`(约 560 MB) | **0.94** | 0.88 | **0.80** |
-
-`keyword` 与 `identifier` 类查询在所有模式下都是 1.0。自己跑一下:`python3 eval/ygg_eval.py`。
+</details>
 
 ## ❓ 常见问题
 
 <details>
-<summary><b>它会把我的代码或记忆发到云端吗?</b></summary>
+<summary><b>它会把我的代码或记忆发到云端吗？</b></summary>
 
-不会。引擎、数据库以及那些可选的模型全都在本地运行。没有账号,没有遥测。你的记忆永远不会离开你的机器。
+不会。引擎、数据库以及那些可选的模型全都在本地运行。没有账号，没有遥测。你的记忆永远不会离开你的机器。
 </details>
 
 <details>
-<summary><b>它和 Context7 / 基于文档的 RAG 有什么不同?</b></summary>
+<summary><b>它会自动记住所有东西吗？</b></summary>
 
-Context7 抓取的是最新的<i>公开库文档</i>(比如最新的 React/Next.js API)。Yggdrasil 记住的是<i>你自己的工作</i>——你的决策、教训和项目进度。二者是互补的;两个一起用。参见<a href="#-yggdrasil-与同类方案对比">对比</a>。
+不会——这是刻意的设计。检索是自动的；但*写入*是慎重的（助手会针对那些值得长期保留的教训调用 `ygg_remember`）。自动记录一切会污染记忆，所以我们不这么做。一个后台模型会整合已经保存下来的内容（默认仅提议）。
 </details>
 
 <details>
-<summary><b>它会自动记住所有东西吗?</b></summary>
+<summary><b>我需要 GPU 或 API key 吗？</b></summary>
 
-不会——这是刻意的设计。检索是自动的;但<i>写入</i>是慎重的(助手会针对那些值得长期保留的教训调用 <code>ygg_remember</code>)。自动记录一切会污染记忆,所以我们不这么做。一个后台模型会整合已经保存下来的内容(默认仅提议)。
+不需要。默认是纯词法搜索——零依赖，即时可用。语义搜索是可选启用的，通过 Ollama 使用一个*本地*模型（无需 API key）。安装程序会推荐一个适合你硬件的模型。
 </details>
 
 <details>
-<summary><b>我需要 GPU 或 API key 吗?</b></summary>
+<summary><b>它有多占资源，要花多少 token？</b></summary>
 
-不需要。默认是纯词法搜索——零依赖,即时可用。语义搜索是可选启用的,通过 Ollama 使用一个<i>本地</i>模型(无需 API key)。安装程序会推荐一个适合你硬件的模型。
+非常轻。引擎占用**约 21 MB 内存、约 0% 空闲 CPU、零依赖**（Python 标准库）；磁盘占用约为每条记忆几十 KB。会话开始时注入约 300 token 的记忆，每次工具调用返回的也只是一小段内容——所有繁重的工作（索引、嵌入、整合）都在你机器上、LLM 之外完成。
 </details>
 
 <details>
-<summary><b>它会消耗我的助手多少 token?</b></summary>
+<summary><b>检索效果怎么样？</b></summary>
 
-非常少。会话开始时注入约 300 token 的记忆;每次工具调用返回的也只是一小段内容。所有繁重的工作(索引、嵌入、整合)都在你机器上、LLM 之外完成。
-</details>
+由 `eval/ygg_eval.py` 测得（35 个带标注的用例，按 dev/holdout 划分），recall@1：
 
-<details>
-<summary><b>我可以手动编辑或删除记忆吗?</b></summary>
-
-可以。记忆会物化为 Obsidian 库中的 Markdown 笔记——你可以像对待任何文件一样读取、编辑或移除它们。引擎从不硬删除;它只做归档(可逆)。
-</details>
-
-<details>
-<summary><b>它能用于生产环境了吗?</b></summary>
-
-它是一个诚实的 <b>alpha</b> 版:常规流程和完整的治理闭环都有通过的门禁覆盖(<code>scripts/run_gates.sh</code>)。尚未针对多用户/生产环境做加固。
-</details>
-
-## 🆚 Yggdrasil 与同类方案对比
-
-大多数“AI 记忆/上下文”工具占据的是技术栈中**不同的层**。唯一没人填上的那一层——**对你自己工作的持久、跨会话、跨助手的记忆**——正是 Yggdrasil 所处的位置。它不与这些工具竞争;它是它们全都能接入的那份记忆。
-
-| 工具 | 它所占据的层 | 与 Yggdrasil 的重叠 | 配合使用更佳 |
+| 模式 | recall@1 | 同义改写 | 跨语言（EN→RU） |
 | --- | --- | --- | --- |
-| **[Context7](https://github.com/upstash/context7)** | 最新的公开**库文档**(只读) | 无 | Context7 提供某个库当前的 API;Yggdrasil 回忆*你的*决策与教训 |
-| **[autoresearch](https://github.com/karpathy/autoresearch)** | 自主**实验循环**(编辑 → 训练 → 测量 → 保留/回退) | 无——它是那个*循环*,不是记忆 | Yggdrasil 正是这个循环所缺的长期记忆:回忆你已经试过什么,跨越多个夜晚与分叉记住每个结果 → [集成](../integrations/autoresearch/) |
-| **context-mode** 及上下文内压缩器 | **会话内**上下文压缩 / 沙箱化分析 | 无——按会话进行 | Yggdrasil 跨会话、跨工具、跨机器持久保存那些*结论* |
-| **普通 LLM 记忆** | 按会话的草稿区 | 部分 | Yggdrasil 是持久、跨项目、受治理且本地的 |
+| lexical（默认） | 0.77 | 0.63 | 0.00 |
+| dense · `all-minilm`（45 MB，EN） | 0.83 | 0.88 | 0.00 |
+| dense · `paraphrase-multilingual`（约 560 MB） | **0.94** | 0.88 | **0.80** |
 
-能力矩阵:
+`keyword` 与 `identifier` 类查询在所有模式下都是 1.0；使用多语言模型时 **recall@3 = 1.0**（每个目标都进入前 3）。
+</details>
 
-| | **Yggdrasil** | Context7 | 普通 LLM 记忆 |
-| --- | --- | --- | --- |
-| 了解**你的**决策/教训 | ✅ | ❌ | ⚠️ 仅限单个会话内 |
-| 最新的公开库文档 | ❌(用 Context7) | ✅ | ❌ |
-| 跨会话且跨**助手** | ✅ | ✅ | ❌ |
-| 跨**项目**回忆 | ✅ | — | ❌ |
-| 写入/积累你的记忆 | ✅ | ❌(只读) | ⚠️ |
-| 本地且私密 | ✅ | ☁️ 托管 | 视情况而定 |
-| 自我整合 | ✅ | ❌ | ❌ |
+<details>
+<summary><b>我可以手动编辑或删除记忆吗？</b></summary>
 
-**一句话总结:** 这些工具抓取文档、运行实验,或压缩单个会话。**Yggdrasil 是它们全都缺失的那份对你自己工作的持久记忆——把它*和*它们一起用,你只会赢。**
+可以。记忆会物化为 Obsidian 库中的 Markdown 笔记——你可以像对待任何文件一样读取、编辑或移除它们。引擎从不硬删除；它只做归档（可逆）。
+</details>
+
+<details>
+<summary><b>它能用于生产环境了吗？</b></summary>
+
+它是一个诚实的 **alpha** 版：常规流程和完整的治理闭环都有通过的门禁覆盖（`scripts/run_gates.sh`）。尚未针对多用户/生产环境做加固。
+</details>
 
 ## 🗺️ 路线图
 
-- 🔗 关系图谱(`SOLVES` / `SUPERSEDES` / `CONTRADICTS`),实现更丰富的推理。
-- 🛰️ 多设备同步——真正做到从任何机器上接着干。
-- 🧪 更强的可选模型,用于安全的自主整合。
-- 🐧 Linux/Windows 服务安装器(目前为 macOS launchd)。
+- 🛰️ **跨界面同步**——从网页版和移动版的 ChatGPT / Claude 连接；一份记忆贯通 CLI、浏览器和手机。
+- 🔗 关系图谱（`SOLVES` / `SUPERSEDES` / `CONTRADICTS`），实现更丰富的推理。
+- 🐧 Linux/Windows 服务安装器（已实现；正在做最后的设备端测试）。
 
 ## 🤝 参与贡献
 
@@ -269,5 +226,4 @@ Context7 抓取的是最新的<i>公开库文档</i>(比如最新的 React/Next.
 
 ## 📜 许可证
 
-**Elastic License 2.0** —— 参见 [LICENSE](./LICENSE)。你可以自由使用、修改、自托管和分发 Yggdrasil，但**不得**将其作为产品出售，也**不得**作为托管/managed 服务提供给他人。它是 source-available，并非 OSI 认可的开源协议。
-
+**Elastic License 2.0**——参见 [LICENSE](../LICENSE)。你可以自由使用、修改、自托管和分发 Yggdrasil。你**不得**将其作为产品出售，也**不得**作为托管/managed 服务提供给他人。它是 source-available——并非 OSI 认可的开源协议。
