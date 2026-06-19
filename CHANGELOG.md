@@ -19,6 +19,10 @@ All notable changes to this project are documented here. Format loosely follows
 - **Provenance in recall output** — `search` / `recall` now show each hit's
   source, confidence, usage count and a 📌 for pinned memories, so you can see
   where a memory came from and how trusted it is at a glance.
+- **In-agent conflict review** — writing a memory now surfaces lexically-similar
+  existing memories of the same project+type (to stderr, so agents see it
+  through the MCP facade), so duplicates/contradictions show up in the moment;
+  `ygg supersede --id <id>` non-destructively archives the outdated one.
 
 ## [0.2.1] — 2026-06-19
 

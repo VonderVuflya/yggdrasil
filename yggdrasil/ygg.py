@@ -154,6 +154,40 @@ def load_content(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
     raise YggError("Provide one of --content, --file, or --json-file.")
 
 
+def _warn_related(args: argparse.Namespace, content: str, project: str,
+                  memory_type: str, new_id: str | None) -> None:
+    """After a write, surface lexically-similar existing memories (same project+type)
+    so the caller can review them for supersede/merge — the in-agent conflict signal.
+    Printed to stderr so stdout stays clean JSON; the MCP facade folds stderr into the
+    tool output, so agents see it too."""
+    payload = {
+        "query": content[:300],
+        "user_id": args.user_id,
+        "limit": 4,
+        "filters": {"project": project, "type": memory_type},
+        "namespaces": [args.namespace],
+    }
+    try:
+        data = request_json("POST", "/search", payload).get("data", [])
+    except YggError:
+        return
+    related = [it for it in data if it.get("id") != new_id][:2]
+    if not related:
+        return
+    print("\n⚠ similar existing memories (review for supersede/merge):", file=sys.stderr)
+    for it in related:
+        md = it.get("metadata") or {}
+        preview = " ".join((it.get("memory") or "").split())[:120]
+        print(f"  {it.get('id')}  ({md.get('type')})  {preview}", file=sys.stderr)
+    print("  → replace an outdated one with:  ygg supersede --id <old-id>", file=sys.stderr)
+
+
+def supersede(args: argparse.Namespace) -> None:
+    """Archive an outdated memory that a newer one replaces (non-destructive)."""
+    backend().archive_memory(args.id, {"superseded": True, "status": "superseded"})
+    print(f"superseded (archived) {args.id}")
+
+
 def remember(args: argparse.Namespace) -> None:
     if args.scope == "project" and not args.project:
         raise YggError("--project is required for project-scoped memories.")
@@ -187,6 +221,7 @@ def remember(args: argparse.Namespace) -> None:
     }
     result = request_json("POST", "/add", payload)
     print(json.dumps(result["data"], indent=2, sort_keys=True))
+    _warn_related(args, content, project, memory_type, result["data"].get("id"))
 
 
 def search(args: argparse.Namespace) -> None:
@@ -395,6 +430,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("unpin", parents=[common])
     p.add_argument("--id", required=True)
     p.set_defaults(func=unpin)
+
+    p = sub.add_parser("supersede", parents=[common])
+    p.add_argument("--id", required=True)
+    p.set_defaults(func=supersede)
 
     return parser
 
