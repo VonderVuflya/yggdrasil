@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.vondervuflya/yggdrasil -->
+<!-- mcp-name: io.github.VonderVuflya/yggdrasil -->
 <h1 align="center">🌳 Yggdrasil</h1>
 
 <p align="center"><b>One shared, durable memory for all your AI coding agents.</b><br/>

@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.vondervuflya/yggdrasil",
+  "name": "io.github.VonderVuflya/yggdrasil",
   "description": "One shared, durable memory for your AI coding agents — local-first, zero-dependency.",
   "repository": {
     "url": "https://github.com/VonderVuflya/yggdrasil",
