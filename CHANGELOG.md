@@ -3,6 +3,27 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [0.2.0] — 2026-06-19
+
+### Changed
+- **Engine env vars renamed** `YGG_MUNINN_URL` / `YGG_MUNINN_TOKEN` →
+  `YGG_ENGINE_URL` / `YGG_ENGINE_TOKEN`; every third-party "Muninn" reference
+  removed from code, docs and translations. Re-run `ygg install` to adopt the
+  new names.
+
+### Added
+- **Cross-platform service** — one Python lifecycle (`yggdrasil/service.py`) for
+  macOS (launchd), Linux (systemd --user) and Windows (Task Scheduler), plus a
+  universal **lazy-spawn** fallback so the engine starts on demand even with no
+  service manager. `ygg ensure` triggers it; `ygg mcp` lazy-spawns on connect.
+- **autoresearch integration** (`integrations/autoresearch/`) — a memory block so
+  a [karpathy/autoresearch](https://github.com/karpathy/autoresearch) agent
+  recalls past experiments and remembers each result across nights/forks.
+- **MCP Registry** — `server.json` (schema 2025-12-11) + `mcp-name` marker for
+  publishing to registry.modelcontextprotocol.io.
+- Expanded README comparison (Context7 / autoresearch / context-mode): the
+  durable cross-session memory layer they all plug into.
+
 ## [0.1.0] — 2026-06-18
 
 First public release. An alpha but honest one: the happy path and the full
