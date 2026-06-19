@@ -107,12 +107,17 @@ Yggdrasil es **memoria + herramientas** — la *inteligencia* es tu LLM. Solo se
 
 Cada una de estas herramientas posee una **capa diferente** de la pila de contexto de IA. La capa que nadie cubría — **memoria duradera, entre sesiones y entre agentes, de _tu propio_ trabajo** — es exactamente donde se sitúa Yggdrasil. No compite con ellas; es la memoria a la que todas se conectan.
 
-| Herramienta | Qué posee | Úsala *con* Yggdrasil porque… |
-| --- | --- | --- |
-| **[context-mode](https://github.com/mksglu/context-mode)** | mantiene ligera la **ventana de contexto en vivo** — aísla la salida de las herramientas, "pensar en código", continuidad dentro de la sesión. Efímera por diseño ("sesión nueva = borrón y cuenta nueva"). | context-mode recorta la sesión de *hoy*; Yggdrasil es la memoria duradera que ella descarta deliberadamente. Horizontes temporales distintos — usa ambas. |
-| **[Context7](https://github.com/upstash/context7)** | **documentación pública de bibliotecas** actualizada (la última API de React/Stripe), solo lectura. | Context7 conoce la API de la *biblioteca*; Yggdrasil conoce *tus* decisiones y detalles peliagudos. |
-| **[autoresearch](https://github.com/karpathy/autoresearch)** | un **bucle de experimentación** autónomo (editar → ejecutar → medir → conservar/revertir). | el bucle despierta en frío cada vez; Yggdrasil le da memoria a largo plazo de lo que ya intentó → [integración](../integrations/autoresearch/). |
-| **"memoria" de un LLM normal** | un cuaderno de notas por sesión, una herramienta a la vez. | Yggdrasil es duradera, entre proyectos, entre agentes, gobernada y local. |
+| | **Yggdrasil** | [context-mode](https://github.com/mksglu/context-mode) | [Context7](https://github.com/upstash/context7) | «memoria» de un LLM normal |
+| --- | --- | --- | --- | --- |
+| Recuerda **tus** decisiones y lecciones | ✅ duradera | ⚠️ dentro de la sesión | ❌ | ⚠️ una sesión |
+| Persiste **entre sesiones y herramientas** | ✅ | ❌ *sesión nueva = borrón y cuenta nueva* | ✅ | ❌ |
+| Recuerdo entre **proyectos** | ✅ | ❌ | — | ❌ |
+| Mantiene ligera la **ventana de contexto en vivo** | — | ✅ | ❌ | ❌ |
+| **Documentación pública de bibliotecas** actualizada | ❌ *(usa Context7)* | ❌ | ✅ | ❌ |
+| Escribe y **consolida** memoria (gobernada) | ✅ | ❌ | ❌ solo lectura | ⚠️ |
+| **Local y privado** | ✅ | ✅ | ☁️ alojado | depende |
+
+> También combina bien con [**autoresearch**](https://github.com/karpathy/autoresearch) — un bucle de experimentación autónomo (no es una herramienta de memoria); Yggdrasil le da memoria a largo plazo de lo que ya intentó → [integración](../integrations/autoresearch/).
 
 **En resumen:** otras herramientas obtienen documentación, ejecutan experimentos o comprimen una sesión. **Yggdrasil es la memoria duradera de _tu propio_ trabajo que a todas les faltaba — úsala junto a ellas y solo ganas.**
 

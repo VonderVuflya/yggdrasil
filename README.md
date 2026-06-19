@@ -116,12 +116,17 @@ Yggdrasil is **memory + tools** — the *intelligence* is your LLM. It just make
 
 These tools each own a **different layer** of the AI-context stack. The layer nobody filled — **durable, cross-session, cross-agent memory of _your own_ work** — is exactly where Yggdrasil sits. It doesn't compete with them; it's the memory they all plug into.
 
-| Tool | What it owns | Use it *with* Yggdrasil because… |
-| --- | --- | --- |
-| **[context-mode](https://github.com/mksglu/context-mode)** | keeps the **live context window** lean — sandboxes tool output, "think in code", in-session continuity. Ephemeral by design ("fresh session = clean slate"). | context-mode trims *today's* session; Yggdrasil is the durable memory it deliberately throws away. Different time-horizons — run both. |
-| **[Context7](https://github.com/upstash/context7)** | fresh **public library docs** (the latest React/Stripe API), read-only. | Context7 knows the *library's* API; Yggdrasil knows *your* decisions and gotchas. |
-| **[autoresearch](https://github.com/karpathy/autoresearch)** | an autonomous **experiment loop** (edit → run → measure → keep/revert). | the loop wakes up cold each time; Yggdrasil gives it long-term memory of what it already tried → [integration](./integrations/autoresearch/). |
-| **plain LLM "memory"** | a per-session scratchpad, one tool at a time. | Yggdrasil is durable, cross-project, cross-agent, governed, and local. |
+| | **Yggdrasil** | [context-mode](https://github.com/mksglu/context-mode) | [Context7](https://github.com/upstash/context7) | plain LLM "memory" |
+| --- | --- | --- | --- | --- |
+| Remembers **your** decisions & lessons | ✅ durable | ⚠️ in-session | ❌ | ⚠️ one session |
+| Persists **across sessions & tools** | ✅ | ❌ *fresh = clean slate* | ✅ | ❌ |
+| Cross-**project** recall | ✅ | ❌ | — | ❌ |
+| Keeps the **live context window** lean | — | ✅ | ❌ | ❌ |
+| Up-to-date public **library docs** | ❌ *(use Context7)* | ❌ | ✅ | ❌ |
+| Writes & **consolidates** memory (governed) | ✅ | ❌ | ❌ read-only | ⚠️ |
+| **Local & private** | ✅ | ✅ | ☁️ hosted | depends |
+
+> Also pairs well with [**autoresearch**](https://github.com/karpathy/autoresearch) — an autonomous experiment loop (not a memory tool); Yggdrasil gives it long-term memory of what it already tried → [integration](./integrations/autoresearch/).
 
 **TL;DR:** other tools fetch docs, run experiments, or compress one session. **Yggdrasil is the durable memory of _your own_ work that they were all missing — use it alongside them and you only win.**
 

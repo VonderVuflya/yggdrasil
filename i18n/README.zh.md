@@ -115,12 +115,17 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
 
 这些工具各自占据 AI 上下文栈中**不同的一层**。而那一层无人填补——**对你自己工作的持久、跨会话、跨助手的记忆**——正是 Yggdrasil 所处的位置。它不与它们竞争；它是它们全都能接入的那份记忆。
 
-| 工具 | 它所占据的层 | 为什么要*和* Yggdrasil 一起用…… |
-| --- | --- | --- |
-| **[context-mode](https://github.com/mksglu/context-mode)** | 让**实时上下文窗口**保持精简——沙箱化工具输出、“在代码中思考”、会话内连续性。本质上是临时性的（“新会话 = 一张白纸”）。 | context-mode 修剪的是*今天*的会话；Yggdrasil 是它刻意丢弃的那份持久记忆。时间尺度不同——两个一起跑。 |
-| **[Context7](https://github.com/upstash/context7)** | 最新的**公开库文档**（最新的 React/Stripe API），只读。 | Context7 了解*库*的 API；Yggdrasil 了解*你的*决策与坑。 |
-| **[autoresearch](https://github.com/karpathy/autoresearch)** | 一个自主的**实验循环**（编辑 → 运行 → 测量 → 保留/回退）。 | 这个循环每次都是冷启动；Yggdrasil 给它长期记忆，记住它已经试过什么 → [集成](../integrations/autoresearch/)。 |
-| **普通 LLM“记忆”** | 一个按会话的草稿区，一次只服务一个工具。 | Yggdrasil 是持久、跨项目、跨助手、受治理且本地的。 |
+| | **Yggdrasil** | [context-mode](https://github.com/mksglu/context-mode) | [Context7](https://github.com/upstash/context7) | 普通 LLM“记忆” |
+| --- | --- | --- | --- | --- |
+| 记住**你的**决策与教训 | ✅ 持久 | ⚠️ 会话内 | ❌ | ⚠️ 单次会话 |
+| **跨会话与工具**留存 | ✅ | ❌ *新会话 = 一张白纸* | ✅ | ❌ |
+| 跨**项目**回忆 | ✅ | ❌ | — | ❌ |
+| 让**实时上下文窗口**保持精简 | — | ✅ | ❌ | ❌ |
+| 最新的公开**库文档** | ❌ *（用 Context7）* | ❌ | ✅ | ❌ |
+| 写入并**整合**记忆（受治理） | ✅ | ❌ | ❌ 只读 | ⚠️ |
+| **本地且私密** | ✅ | ✅ | ☁️ 托管 | 视情况而定 |
+
+> 也能与 [**autoresearch**](https://github.com/karpathy/autoresearch) 很好地搭配——一个自主的实验循环（不是记忆工具）；Yggdrasil 为它提供它已经试过什么的长期记忆 → [集成](../integrations/autoresearch/)。
 
 **一句话总结：** 其他工具抓取文档、运行实验，或压缩单个会话。**Yggdrasil 是它们全都缺失的那份对你自己工作的持久记忆——把它和它们一起用，你只会赢。**
 
