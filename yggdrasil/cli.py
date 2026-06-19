@@ -54,7 +54,7 @@ Memory ops:
 """
 
 SERVICE_CMDS = {
-    "install", "status", "start", "stop", "restart", "logs", "token",
+    "status", "start", "stop", "restart", "logs", "token",
     "uninstall", "hooks", "unhooks", "consolidate", "unconsolidate",
 }
 MEMORY_CMDS = {"health", "bootstrap", "search", "recall", "remember", "materialize"}
@@ -71,11 +71,48 @@ def _config() -> dict:
         return {}
 
 
-def _run_service(cmd: str, rest: list[str], env: dict | None = None) -> int:
-    if not INSTALL_SH.exists():
-        print(f"installer not found at {INSTALL_SH}", file=sys.stderr)
-        return 1
-    return subprocess.call(["bash", str(INSTALL_SH), cmd, *rest], env=env)
+def _install(rest: list[str]) -> int:
+    """`ygg install` — interactive wizard on a TTY, else a zero-config lexical setup."""
+    from . import service
+    embed = bg = ""
+    it = iter(rest)
+    for a in it:
+        if a == "--embed-model":
+            embed = next(it, "")
+        elif a == "--bg-model":
+            bg = next(it, "")
+    interactive = (sys.stdin.isatty() and os.environ.get("YGG_NONINTERACTIVE") != "1"
+                   and not embed and not bg)
+    if interactive:
+        from . import ygg_setup
+        sys.argv = ["ygg", "wizard"]
+        return ygg_setup.main()  # wizard collects models, then calls service.install
+    return service.install(embed, bg)
+
+
+def _service(cmd: str, rest: list[str]) -> int:
+    """Cross-platform service lifecycle (macOS launchd / Linux systemd / Windows schtasks)."""
+    from . import service
+    simple = {
+        "start": service.start, "stop": service.stop, "restart": service.restart,
+        "status": service.status, "uninstall": service.uninstall,
+        "hooks": service.enable_session_hook, "unhooks": service.disable_session_hook,
+    }
+    if cmd in simple:
+        return simple[cmd]()
+    if cmd == "logs":
+        return service.logs(int(os.environ.get("LINES", "40")))
+    if cmd == "token":
+        print(service.token() or "(no token — run: ygg install)")
+        return 0
+    if cmd in ("consolidate", "unconsolidate"):
+        import platform as _pf
+        if _pf.system() != "Darwin" or not INSTALL_SH.exists():
+            print(f"`ygg {cmd}` (scheduled consolidation) is currently macOS-only.",
+                  file=sys.stderr)
+            return 1
+        return subprocess.call(["bash", str(INSTALL_SH), cmd, *rest])
+    return 2
 
 
 def _ollama_models() -> list[str]:
@@ -139,16 +176,11 @@ def _doctor() -> int:
 
 
 def _update() -> int:
-    """Redeploy the current package code into ~/.yggdrasil (non-interactive)."""
+    """Redeploy the current package code into ~/.yggdrasil."""
+    from . import service
     cfg = _config()
-    env = dict(os.environ, YGG_NONINTERACTIVE="1")
-    rest: list[str] = []
-    if cfg.get("embed_model"):
-        rest += ["--embed-model", cfg["embed_model"]]
-    if cfg.get("bg_model"):
-        rest += ["--bg-model", cfg["bg_model"]]
     print("redeploying current code into ~/.yggdrasil ...")
-    return _run_service("install", rest, env=env)
+    return service.install(cfg.get("embed_model", ""), cfg.get("bg_model", ""))
 
 
 def main() -> int:
@@ -167,6 +199,8 @@ def main() -> int:
         sys.argv = ["ygg serve", *rest]
         return m.main()
     if cmd == "mcp":
+        from . import service
+        service.ensure_running()  # lazy-spawn the engine on first MCP connection
         from . import ygg_mcp_server as m
         sys.argv = ["ygg mcp", *rest]
         return m.main()
@@ -182,12 +216,17 @@ def main() -> int:
         from . import ygg as m
         sys.argv = ["ygg", cmd, *rest]
         return m.main()
+    if cmd == "install":
+        return _install(rest)
+    if cmd == "ensure":
+        from . import service
+        return 0 if service.ensure_running() else 1
     if cmd == "doctor":
         return _doctor()
     if cmd == "update":
         return _update()
     if cmd in SERVICE_CMDS:
-        return _run_service(cmd, rest)
+        return _service(cmd, rest)
 
     print(f"unknown command: {cmd}\n", file=sys.stderr)
     print(USAGE)

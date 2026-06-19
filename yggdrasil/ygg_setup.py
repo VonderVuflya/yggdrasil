@@ -144,17 +144,13 @@ def wizard() -> int:
     (YGG_HOME / "config.json").write_text(json.dumps(config, indent=2))
     print(f"\nSaved {YGG_HOME / 'config.json'}:\n{json.dumps(config, indent=2)}")
 
-    install_sh = str(Path(__file__).resolve().parent / "install.sh")
-    args = ["bash", install_sh, "install"]
-    if config["embed_model"]:
-        args += ["--embed-model", config["embed_model"]]
-    if config["bg_model"]:
-        args += ["--bg-model", config["bg_model"]]
-    print("\nHanding off to installer:", " ".join(args[1:]))
-    rc = subprocess.call(args)
-    if rc == 0 and feats["hooks"]:
-        subprocess.call(["bash", install_sh, "hooks"])
-    return rc
+    print("\nInstalling the background service ...")
+    try:
+        from . import service
+    except ImportError:  # flat layout (deployed scripts dir / direct run)
+        import service
+    return service.install(config["embed_model"], config["bg_model"],
+                           enable_hooks=feats["hooks"])
 
 
 def main() -> int:
