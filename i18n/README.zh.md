@@ -111,6 +111,41 @@ Yggdrasil 提供的是**记忆 + 工具**——*智能*来自你的 LLM。它只
 - **治理**——重复 / 冲突的记忆会被挑出来供你审查；所有改动都是非破坏性的（归档，绝不删除）。
 - **Obsidian**——每一条记忆同时也是一份可读、可编辑的 Markdown 笔记。
 
+## 🎛️ 记忆层级——默认零配置
+
+开箱即用，Yggdrasil 运行在 **SQLite + FTS5 之上，零依赖**——即时的关键词（词法）搜索，无需模型，无需 GPU，无需下载任何东西。已经很有用了：recall@1 ≈ 0.77。
+
+想让它按**含义**并跨语言匹配？只要你的硬件允许，`ygg install` 就能拉取可选的**本地模型，通过 [Ollama](https://ollama.com)**——它会检测你的 CPU/RAM/GPU 并推荐一个合适的（或者选择 `none` 以保持零配置）。两个可选、相互独立的层级：
+
+- **🔎 嵌入（Embeddings）** → 语义 + 跨语言搜索。模型把文本转成向量；它们存储在*同一个 SQLite* 里，并与 BM25 融合。（例如 `all-minilm` 45 MB EN · `paraphrase-multilingual` ~560 MB 多语言）
+- **🌱 整合（Consolidation）** → 一个小型后台 LLM，在后台对记忆去重/合并，提议安全。（例如 `qwen2.5:1.5b` ~1 GB）
+
+<details>
+<summary>完整模型菜单（或运行 <code>ygg recommend</code>）</summary>
+
+**嵌入（语义搜索）：**
+
+| 模型 | 大小 | 适用场景 |
+| --- | --- | --- |
+| `all-minilm` | 45 MB | 英文，小巧快速 |
+| `nomic-embed-text` | 274 MB | 英文，质量更好 |
+| `paraphrase-multilingual` | ~560 MB | 多语言（EN/RU + 50 种语言） |
+| `bge-m3` | 1.2 GB | 多语言，顶级质量（更重） |
+
+**后台整合（小型 LLM）：**
+
+| 模型 | 大小 | 适用场景 |
+| --- | --- | --- |
+| `qwen2.5:0.5b` | ~400 MB | 小巧，在 CPU 上快速 |
+| `qwen2.5:1.5b` | ~1 GB | 最佳 CPU 默认选择 |
+| `llama3.2:3b` | ~2 GB | 质量更好，在 CPU 上更慢 |
+
+</details>
+
+**附加好处：** 检索从仅关键词升级为**混合（BM25 + 稠密向量，融合）**——它能找到同义改写和跨语言匹配，而不只是精确词。recall@1 从 **0.77 跃升至 0.94**（使用多语言模型时 recall@3 → 1.0）。后台模型让记忆保持整洁。一切都保持 **100% 本地——零 API token，无云端。**
+
+> 引擎本身是可替换的——任何满足 `MemoryBackend` 契约的服务都能直接接入（把 `YGG_ENGINE_URL` 指向它）；SQLite 是零依赖的默认项。参见 [docs/backend-boundary.md](../docs/backend-boundary.md)。
+
 ## 🆚 Yggdrasil 与同类方案对比
 
 context-mode 和 Context7 占据着**不同的层**（你的实时上下文窗口；最新的库文档）。**mem0** 是最接近的——它也是一个记忆层，但属于不同的*种类*：一个让 **AI 应用记住它们的用户**的 SDK/平台。Yggdrasil 是**装好即用、本地优先的、对_你自己_工作的记忆，服务于你已经在用的编程助手**——无需写代码，无需云端，无需 API key。

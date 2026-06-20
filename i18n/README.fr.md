@@ -103,6 +103,41 @@ Yggdrasil, c'est **mémoire + outils** — l'*intelligence*, c'est votre LLM. Il
 - **Gouvernance** — doublons / conflits sont signalés pour relecture ; les modifications sont non destructives (archivage, jamais de suppression).
 - **Obsidian** — chaque mémoire est aussi une note Markdown que vous pouvez lire et éditer.
 
+## 🎛️ Niveaux de mémoire — sans configuration par défaut
+
+Dès le départ, Yggdrasil fonctionne sur **SQLite + FTS5 sans aucune dépendance** — recherche instantanée par mots-clés (lexicale), aucun modèle, aucun GPU, rien à télécharger. Déjà utile : recall@1 ≈ 0.77.
+
+Vous voulez qu'il fasse correspondre par **sens** et entre les langues ? Si votre matériel le permet, `ygg install` peut récupérer des **modèles locaux optionnels via [Ollama](https://ollama.com)** — il détecte votre CPU/RAM/GPU et recommande un modèle adapté (ou choisissez `none` pour rester sans configuration). Deux niveaux optionnels et indépendants :
+
+- **🔎 Embeddings** → recherche sémantique + translingue. Le modèle transforme le texte en vecteurs ; ils sont stockés dans la *même base SQLite* et fusionnés avec BM25. (par ex. `all-minilm` 45 Mo EN · `paraphrase-multilingual` ~560 Mo multilingue)
+- **🌱 Consolidation** → un petit LLM d'arrière-plan qui déduplique/fusionne la mémoire en arrière-plan, en mode proposition seule. (par ex. `qwen2.5:1.5b` ~1 Go)
+
+<details>
+<summary>Menu complet des modèles (ou lancez <code>ygg recommend</code>)</summary>
+
+**Embeddings (recherche sémantique) :**
+
+| Modèle | Taille | Idéal pour |
+| --- | --- | --- |
+| `all-minilm` | 45 MB | anglais, minuscule et rapide |
+| `nomic-embed-text` | 274 MB | anglais, meilleure qualité |
+| `paraphrase-multilingual` | ~560 MB | multilingue (EN/RU + 50 langues) |
+| `bge-m3` | 1.2 GB | multilingue, qualité maximale (plus lourd) |
+
+**Consolidation en arrière-plan (petit LLM) :**
+
+| Modèle | Taille | Idéal pour |
+| --- | --- | --- |
+| `qwen2.5:0.5b` | ~400 MB | minuscule, rapide sur CPU |
+| `qwen2.5:1.5b` | ~1 GB | meilleur choix par défaut sur CPU |
+| `llama3.2:3b` | ~2 GB | meilleure qualité, plus lent sur CPU |
+
+</details>
+
+**Le bonus :** la récupération passe de mots-clés uniquement à **hybride (BM25 + dense, fusionnés)** — elle trouve les paraphrases et les correspondances translingues, pas seulement les mots exacts. recall@1 bondit de **0.77 → 0.94** (recall@3 → 1.0 avec le modèle multilingue). Le modèle d'arrière-plan garde la mémoire propre. Tout reste **100 % local — zéro jeton d'API, pas de cloud.**
+
+> Le moteur lui-même est interchangeable — n'importe quel service respectant le contrat `MemoryBackend` se branche directement (pointez `YGG_ENGINE_URL` dessus) ; SQLite est le choix par défaut sans dépendance. Voir [docs/backend-boundary.md](../docs/backend-boundary.md).
+
 ## 🆚 Yggdrasil face aux autres
 
 context-mode et Context7 occupent des **couches différentes** (votre fenêtre de contexte vive ; la doc fraîche des bibliothèques). **mem0** est le plus proche — c'est aussi une couche de mémoire, mais d'un *type* différent : un SDK/une plateforme pour que **les applis IA se souviennent de leurs utilisateurs**. Yggdrasil, c'est une **mémoire prête à l'emploi, local-first, de _votre propre_ travail pour les agents de codage que vous utilisez déjà** — pas de code, pas de cloud, pas de clé d'API.

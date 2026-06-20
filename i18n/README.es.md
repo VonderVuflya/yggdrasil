@@ -103,6 +103,41 @@ Yggdrasil es **memoria + herramientas** — la *inteligencia* es tu LLM. Solo se
 - **Gobernanza** — los duplicados / conflictos se exponen para su revisión; los cambios son no destructivos (archivar, nunca borrar).
 - **Obsidian** — cada memoria es también una nota en Markdown que puedes leer y editar.
 
+## 🎛️ Niveles de memoria — sin configuración por defecto
+
+De fábrica, Yggdrasil funciona con **SQLite + FTS5 sin dependencias** — búsqueda instantánea por palabras clave (léxica), sin modelos, sin GPU, nada que descargar. Ya es útil: recall@1 ≈ 0.77.
+
+¿Quieres que coincida por **significado** y entre idiomas? Si tu hardware lo permite, `ygg install` puede descargar **modelos locales opcionales vía [Ollama](https://ollama.com)** — detecta tu CPU/RAM/GPU y recomienda uno que encaje (o elige `none` para quedarte sin configuración). Dos niveles opcionales e independientes:
+
+- **🔎 Embeddings** → búsqueda semántica + translingüe. El modelo convierte el texto en vectores; se almacenan en la *misma SQLite* y se fusionan con BM25. (p. ej. `all-minilm` 45 MB EN · `paraphrase-multilingual` ~560 MB multilingüe)
+- **🌱 Consolidación** → un pequeño LLM en segundo plano que deduplica/fusiona la memoria en segundo plano, con seguridad de propuesta. (p. ej. `qwen2.5:1.5b` ~1 GB)
+
+<details>
+<summary>Menú completo de modelos (o ejecuta <code>ygg recommend</code>)</summary>
+
+**Embeddings (búsqueda semántica):**
+
+| Modelo | Tamaño | Bueno para |
+| --- | --- | --- |
+| `all-minilm` | 45 MB | inglés, diminuto y rápido |
+| `nomic-embed-text` | 274 MB | inglés, mejor calidad |
+| `paraphrase-multilingual` | ~560 MB | multilingüe (EN/RU + 50 idiomas) |
+| `bge-m3` | 1.2 GB | multilingüe, máxima calidad (más pesado) |
+
+**Consolidación en segundo plano (LLM pequeño):**
+
+| Modelo | Tamaño | Bueno para |
+| --- | --- | --- |
+| `qwen2.5:0.5b` | ~400 MB | diminuto, rápido en CPU |
+| `qwen2.5:1.5b` | ~1 GB | mejor opción por defecto en CPU |
+| `llama3.2:3b` | ~2 GB | mejor calidad, más lento en CPU |
+
+</details>
+
+**El extra:** la recuperación pasa de solo palabras clave a **híbrida (BM25 + densa, fusionadas)** — encuentra paráfrasis y coincidencias translingües, no solo palabras exactas. recall@1 salta de **0.77 → 0.94** (recall@3 → 1.0 con el modelo multilingüe). El modelo en segundo plano mantiene la memoria ordenada. Todo permanece **100 % local — cero tokens de API, sin nube.**
+
+> El motor en sí es intercambiable — cualquier servicio que cumpla el contrato `MemoryBackend` es un reemplazo directo (apunta `YGG_ENGINE_URL` a él); SQLite es el valor por defecto sin dependencias. Consulta [docs/backend-boundary.md](../docs/backend-boundary.md).
+
 ## 🆚 Yggdrasil frente al resto
 
 context-mode y Context7 poseen **capas diferentes** (tu ventana de contexto en vivo; documentación de bibliotecas actualizada). **mem0** es la más cercana — también es una capa de memoria, pero de un *tipo* distinto: un SDK/plataforma para que las **aplicaciones de IA recuerden a sus usuarios**. Yggdrasil es **memoria que instalas y ya está, local-first, de _tu propio_ trabajo para los agentes de programación que ya usas** — sin código, sin nube, sin clave de API.

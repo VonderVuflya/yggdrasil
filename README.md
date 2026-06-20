@@ -112,6 +112,41 @@ Yggdrasil is **memory + tools** — the *intelligence* is your LLM. It just make
 - **Governance** — duplicates / conflicts are surfaced for review; changes are non-destructive (archive, never delete).
 - **Obsidian** — every memory is also a Markdown note you can read and edit.
 
+## 🎛️ Memory tiers — zero-config by default
+
+Out of the box, Yggdrasil runs on **SQLite + FTS5 with zero dependencies** — instant keyword (lexical) search, no models, no GPU, nothing to download. Already useful: recall@1 ≈ 0.77.
+
+Want it to match by **meaning** and across languages? If your hardware allows, `ygg install` can pull optional **local models via [Ollama](https://ollama.com)** — it detects your CPU/RAM/GPU and recommends a fit (or choose `none` to stay zero-config). Two optional, independent tiers:
+
+- **🔎 Embeddings** → semantic + cross-lingual search. The model turns text into vectors; they're stored in the *same SQLite* and fused with BM25. (e.g. `all-minilm` 45 MB EN · `paraphrase-multilingual` ~560 MB multilingual)
+- **🌱 Consolidation** → a small background LLM that dedupes/merges memory in the background, propose-safe. (e.g. `qwen2.5:1.5b` ~1 GB)
+
+<details>
+<summary>Full model menu (or run <code>ygg recommend</code>)</summary>
+
+**Embeddings (semantic search):**
+
+| Model | Size | Good for |
+| --- | --- | --- |
+| `all-minilm` | 45 MB | English, tiny & fast |
+| `nomic-embed-text` | 274 MB | English, better quality |
+| `paraphrase-multilingual` | ~560 MB | multilingual (EN/RU + 50 langs) |
+| `bge-m3` | 1.2 GB | multilingual, top quality (heavier) |
+
+**Background consolidation (small LLM):**
+
+| Model | Size | Good for |
+| --- | --- | --- |
+| `qwen2.5:0.5b` | ~400 MB | tiny, fast on CPU |
+| `qwen2.5:1.5b` | ~1 GB | best CPU default |
+| `llama3.2:3b` | ~2 GB | better quality, slower on CPU |
+
+</details>
+
+**The bonus:** retrieval goes from keyword-only to **hybrid (BM25 + dense, fused)** — it finds paraphrases and cross-lingual matches, not just exact words. recall@1 jumps **0.77 → 0.94** (recall@3 → 1.0 with the multilingual model). The background model keeps memory tidy. Everything stays **100% local — zero API tokens, no cloud.**
+
+> The engine itself is swappable — any service meeting the `MemoryBackend` contract is a drop-in (point `YGG_ENGINE_URL` at it); SQLite is the zero-dep default. See [docs/backend-boundary.md](./docs/backend-boundary.md).
+
 ## 🆚 Yggdrasil vs the rest
 
 context-mode and Context7 own **different layers** (your live context window; fresh library docs). **mem0** is the closest — it's also a memory layer, but a different *kind*: an SDK/platform for **AI apps to remember their users**. Yggdrasil is **install-and-go, local-first memory of _your own_ work for the coding agents you already use** — no code, no cloud, no API key.
