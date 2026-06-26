@@ -3,6 +3,45 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [0.4.0] — 2026-06-24
+
+### Added
+- **Cold-start onboarding** — `ygg seed` (autodiscovers Claude Code transcripts,
+  Obsidian vaults, and repos with `CLAUDE.md`, prints a cost/time estimate, then
+  distills locally), `ygg distill --source` (raw transcript → atomic, deduped
+  lessons with provenance via the local Ollama model — free, nothing leaves the
+  machine), and `ygg stats` (memory overview by project × type × scope).
+- **Stop hook** (`ygg stophooks`, or the wizard's "autosave") — distills each
+  finished session into 0-N durable lessons in a detached process, so session
+  end is never delayed. The opt-in, curated alternative to capturing everything.
+- **Streamable-HTTP MCP facade** (`ygg mcp-http`) — exposes the same tools over
+  the MCP Streamable HTTP transport for remote/cross-surface clients (bearer
+  auth). Foundation for connecting claude.ai web/mobile — see
+  [docs/cross-surface.md](docs/cross-surface.md).
+
+### Fixed
+- CLI memory commands no longer fail with **401** — the token is read from
+  `~/.yggdrasil/token` (and `YGG_TOKEN`) by default, like `ygg doctor` and the
+  hook already did; a 401 now prints a fix hint.
+- **MCP registers without a `claude`/`codex` binary** on PATH — writes the stdio
+  server straight into `~/.claude.json` (merged + backed up) for Claude Code as a
+  VSCode/Cursor extension; install prints ready-to-paste JSON if nothing matched
+  (was a silent skip).
+- Install **warns loudly** when models were selected but Ollama is missing or a
+  pull fails (no more silent lexical fallback); `ygg install` ends with
+  `ygg doctor`.
+- `/health` now reports `storage` / `dense: active(model)|inactive` /
+  `reranker: disabled (not configured)` instead of a confusing `fts5` + `inactive`.
+- `config.json` no longer drops the wizard's `features` block on install.
+
+### Changed
+- **Unified memory identity** — the SessionStart hook, CLI, importer and
+  write-path now share the MCP agent's `yggdrasil-demo` / `demo-user` identity
+  (they had drifted into three separate silos), so hook injection, agent
+  recall/remember, the CLI, and seed all read and write **one** store.
+- README: **claude-mem** added to the comparison matrix (all 7 languages); a
+  Claude Desktop `.mcpb` + skill connect section; dynamic release/PyPI badges.
+
 ## [0.3.0] — 2026-06-19
 
 ### Added
