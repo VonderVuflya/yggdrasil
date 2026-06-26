@@ -39,6 +39,7 @@ BG_MODELS = [
 FEATURES = [
     ("dense", "Semantic search via embeddings (needs an embedding model). Finds by meaning, not just words."),
     ("hooks", "Auto-inject identity + project memory at session start (Claude Code SessionStart hook)."),
+    ("autosave", "On session end, distill the transcript into durable lessons, locally (Stop hook)."),
     ("write_path", "Background model distills/dedupes/links memory autonomously (needs a background model)."),
     ("consolidation", "Scheduled background review/merge of memory (launchd cron; needs a background model)."),
 ]
@@ -140,6 +141,7 @@ def wizard() -> int:
     feats = {
         "dense": embed != "none",
         "hooks": _ask_yes("Enable SessionStart auto-bootstrap hook?", True),
+        "autosave": _ask_yes("Auto-distill finished sessions into lessons? (Stop hook, local)", False),
         "write_path": bg != "none" and _ask_yes("Enable background smart write-path?", True),
         "consolidation": bg != "none" and _ask_yes("Enable scheduled auto-consolidation?", False),
     }
@@ -155,7 +157,7 @@ def wizard() -> int:
     except ImportError:  # flat layout (deployed scripts dir / direct run)
         import service
     return service.install(config["embed_model"], config["bg_model"],
-                           enable_hooks=feats["hooks"])
+                           enable_hooks=feats["hooks"], enable_stop=feats["autosave"])
 
 
 def main() -> int:

@@ -388,7 +388,8 @@ def _manager() -> str:
 # Public lifecycle
 # --------------------------------------------------------------------------- #
 
-def install(embed_model: str = "", bg_model: str = "", enable_hooks: bool = False) -> int:
+def install(embed_model: str = "", bg_model: str = "", enable_hooks: bool = False,
+            enable_stop: bool = False) -> int:
     print(f"==> installing into {YGG_HOME} ({current_os()})")
     deploy_files()
     tok = ensure_token()
@@ -461,6 +462,8 @@ def install(embed_model: str = "", bg_model: str = "", enable_hooks: bool = Fals
 
     if enable_hooks:
         enable_session_hook()
+    if enable_stop:
+        enable_stop_hook()
 
     h = health()
     print(f"==> health: {h}")
@@ -599,4 +602,49 @@ def disable_session_hook() -> int:
     ]
     path.write_text(json.dumps(cfg, indent=2))
     print("removed Yggdrasil SessionStart hook")
+    return 0
+
+
+def _stop_hook_command() -> str:
+    return f"{_python()} {SCRIPTS / 'hooks' / 'ygg_stop.py'}"
+
+
+def enable_stop_hook() -> int:
+    """Auto-distill each finished session into durable lessons (opt-in, local)."""
+    path = Path.home() / ".claude" / "settings.json"
+    cfg = {}
+    if path.exists():
+        try:
+            cfg = json.loads(path.read_text())
+        except ValueError:
+            cfg = {}
+        shutil.copy2(path, str(path) + ".ygg.bak")
+    cmd = _stop_hook_command()
+    grp = cfg.setdefault("hooks", {}).setdefault("Stop", [])
+    if any(h.get("command") == cmd for g in grp for h in g.get("hooks", [])):
+        print("Stop hook already enabled")
+        return 0
+    grp.append({"hooks": [{"type": "command", "command": cmd}]})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cfg, indent=2))
+    print("enabled Yggdrasil Stop hook — each session is distilled into lessons locally")
+    return 0
+
+
+def disable_stop_hook() -> int:
+    path = Path.home() / ".claude" / "settings.json"
+    if not path.exists():
+        print("no settings.json")
+        return 0
+    try:
+        cfg = json.loads(path.read_text())
+    except ValueError:
+        return 0
+    marker = str(SCRIPTS / "hooks" / "ygg_stop.py")
+    grp = cfg.get("hooks", {}).get("Stop", [])
+    cfg.setdefault("hooks", {})["Stop"] = [
+        g for g in grp if not any(marker in h.get("command", "") for h in g.get("hooks", []))
+    ]
+    path.write_text(json.dumps(cfg, indent=2))
+    print("removed Yggdrasil Stop hook")
     return 0

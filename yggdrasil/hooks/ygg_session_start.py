@@ -21,8 +21,8 @@ from pathlib import Path
 
 
 URL = os.environ.get("YGG_ENGINE_URL", "http://127.0.0.1:42069").rstrip("/")
-NAMESPACE = os.environ.get("YGG_NAMESPACE", "yggdrasil-dogfood")
-USER_ID = os.environ.get("YGG_USER_ID", "dogfood-user")
+NAMESPACE = os.environ.get("YGG_NAMESPACE", "yggdrasil-demo")
+USER_ID = os.environ.get("YGG_USER_ID", "demo-user")
 LIMIT = int(os.environ.get("YGG_BOOTSTRAP_LIMIT", "5"))
 
 

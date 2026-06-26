@@ -46,7 +46,7 @@ class YggConfig:
     url: str = DEFAULT_ENGINE_URL
     token: str = DEFAULT_DEMO_TOKEN
     namespace: str = "yggdrasil-demo"
-    user_id: str = "global_user"
+    user_id: str = "demo-user"
 
     @classmethod
     def from_env(cls) -> "YggConfig":
@@ -60,7 +60,7 @@ class YggConfig:
             url=(os.environ.get("YGG_ENGINE_URL") or DEFAULT_ENGINE_URL).rstrip("/"),
             token=token,
             namespace=os.environ.get("YGG_NAMESPACE") or "yggdrasil-demo",
-            user_id=os.environ.get("YGG_USER_ID") or "global_user",
+            user_id=os.environ.get("YGG_USER_ID") or "demo-user",
         )
 
 

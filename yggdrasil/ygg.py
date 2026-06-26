@@ -25,7 +25,7 @@ except ImportError:  # flat layout (deployed scripts dir / tests / direct run)
 
 DEFAULT_URL = "http://127.0.0.1:42069"
 DEFAULT_NAMESPACE = "yggdrasil-demo"
-DEFAULT_USER = "global_user"
+DEFAULT_USER = "demo-user"  # unified identity — same store the MCP agent reads/writes
 
 SECRET_PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----"),
@@ -188,42 +188,78 @@ def supersede(args: argparse.Namespace) -> None:
     print(f"superseded (archived) {args.id}")
 
 
+def write_memory(
+    *,
+    content: str,
+    project: str,
+    memory_type: str,
+    source: str | None,
+    user_id: str,
+    namespace: str,
+    scope: str = "project",
+    confidence: float | None = None,
+    tags: list[str] | None = None,
+    extract: bool = False,
+) -> tuple[str, dict[str, Any]]:
+    """Core write path — secret-guard + content-hash dedup + add. No printing.
+
+    Returns ``("added", record)`` or ``("duplicate", existing)``. Shared by the
+    ``remember`` CLI command and by seed/distill so they all get the same
+    dedup, secret refusal and provenance behavior.
+    """
+    metadata: dict[str, Any] = {
+        "project": project,
+        "scope": scope,
+        "type": memory_type,
+        "source": source or "ygg-cli",
+        "skip_extraction": not extract,
+    }
+    if confidence is not None:
+        metadata["confidence"] = confidence
+    if tags:
+        metadata["tags"] = list(dict.fromkeys(tags))  # de-dup, preserve order
+    digest = content_hash(content)
+    metadata["content_hash"] = digest
+    require_safe_memory(content, metadata)
+    existing = find_existing_hash(user_id, project, memory_type, digest)
+    if existing:
+        return ("duplicate", existing)
+    payload = {
+        "content": content,
+        "user_id": user_id,
+        "namespace": namespace,
+        "scope": scope,
+        "metadata": metadata,
+    }
+    result = request_json("POST", "/add", payload)
+    return ("added", result["data"])
+
+
 def remember(args: argparse.Namespace) -> None:
     if args.scope == "project" and not args.project:
         raise YggError("--project is required for project-scoped memories.")
     content, file_metadata = load_content(args)
     project = args.project or "global"
     memory_type = args.type or file_metadata.get("type") or "memory"
-    metadata = {
-        "project": project,
-        "scope": args.scope,
-        "type": memory_type,
-        "source": args.source or file_metadata.get("source") or "ygg-cli",
-        "skip_extraction": not args.extract,
-    }
-    if args.confidence is not None:
-        metadata["confidence"] = args.confidence
-    elif "confidence" in file_metadata:
-        metadata["confidence"] = file_metadata["confidence"]
-    if getattr(args, "tag", None):
-        metadata["tags"] = list(dict.fromkeys(args.tag))  # de-dup, preserve order
-    digest = content_hash(content)
-    metadata["content_hash"] = digest
-    require_safe_memory(content, metadata)
-    existing = find_existing_hash(args.user_id, project, memory_type, digest)
-    if existing:
-        print(json.dumps({"event": "YGG_DUPLICATE_SKIP", "id": existing.get("id"), "content_hash": digest}, indent=2, sort_keys=True))
+    confidence = args.confidence if args.confidence is not None else file_metadata.get("confidence")
+    status, record = write_memory(
+        content=content,
+        project=project,
+        memory_type=memory_type,
+        source=args.source or file_metadata.get("source"),
+        user_id=args.user_id,
+        namespace=args.namespace,
+        scope=args.scope,
+        confidence=confidence,
+        tags=getattr(args, "tag", None),
+        extract=args.extract,
+    )
+    if status == "duplicate":
+        print(json.dumps({"event": "YGG_DUPLICATE_SKIP", "id": record.get("id"),
+                          "content_hash": content_hash(content)}, indent=2, sort_keys=True))
         return
-    payload = {
-        "content": content,
-        "user_id": args.user_id,
-        "namespace": args.namespace,
-        "scope": args.scope,
-        "metadata": metadata,
-    }
-    result = request_json("POST", "/add", payload)
-    print(json.dumps(result["data"], indent=2, sort_keys=True))
-    _warn_related(args, content, project, memory_type, result["data"].get("id"))
+    print(json.dumps(record, indent=2, sort_keys=True))
+    _warn_related(args, content, project, memory_type, record.get("id"))
 
 
 def search(args: argparse.Namespace) -> None:

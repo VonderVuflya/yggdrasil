@@ -175,8 +175,8 @@ PY
     CPLIST="$HOME/Library/LaunchAgents/${CLABEL}.plist"
     TOKEN="$(cat "$YGG_HOME/token" 2>/dev/null)"
     INTERVAL="${YGG_CONSOLIDATE_INTERVAL:-86400}"
-    CUSER="${YGG_CONS_USER:-dogfood-user}"
-    CNS="${YGG_CONS_NS:-yggdrasil-dogfood}"
+    CUSER="${YGG_CONS_USER:-demo-user}"
+    CNS="${YGG_CONS_NS:-yggdrasil-demo}"
     # SAFE DEFAULT: propose only (detect + log candidates, archive nothing). A
     # small local model confidently mislabels distinct-but-similar lessons, so
     # auto-archiving is opt-in (YGG_CONSOLIDATE_APPLY=1) and best with a strong model.

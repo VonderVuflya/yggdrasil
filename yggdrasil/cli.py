@@ -36,11 +36,17 @@ Setup & service:
   ygg update             Redeploy the current code into the running service
   ygg status | start | stop | restart | logs | token | uninstall
   ygg hooks | unhooks    Enable/disable the SessionStart auto-bootstrap hook
+  ygg stophooks | unstophooks  Enable/disable the Stop hook (auto-distill sessions → lessons)
   ygg consolidate | unconsolidate
 
 Run components directly:
   ygg serve [...]        Run the memory engine (HTTP, SQLite + FTS5)
   ygg mcp                Run the stdio MCP facade
+
+Cold start (seed memory from your existing work):
+  ygg stats              Overview of what's in memory (project × type × scope)
+  ygg seed [--dry-run]   Discover transcripts/vaults/repos, estimate, then distill (local)
+  ygg distill --source P Distill one dir/file into atomic lessons (local Ollama model)
 
 Memory ops:
   ygg health
@@ -55,7 +61,8 @@ Memory ops:
 
 SERVICE_CMDS = {
     "status", "start", "stop", "restart", "logs", "token",
-    "uninstall", "hooks", "unhooks", "consolidate", "unconsolidate",
+    "uninstall", "hooks", "unhooks", "stophooks", "unstophooks",
+    "consolidate", "unconsolidate",
 }
 MEMORY_CMDS = {"health", "bootstrap", "search", "recall", "remember", "materialize", "pin", "unpin", "supersede"}
 
@@ -101,6 +108,7 @@ def _service(cmd: str, rest: list[str]) -> int:
         "start": service.start, "stop": service.stop, "restart": service.restart,
         "status": service.status, "uninstall": service.uninstall,
         "hooks": service.enable_session_hook, "unhooks": service.disable_session_hook,
+        "stophooks": service.enable_stop_hook, "unstophooks": service.disable_stop_hook,
     }
     if cmd in simple:
         return simple[cmd]()
@@ -216,6 +224,11 @@ def main() -> int:
         from . import ygg_setup as m
         sys.argv = ["ygg", cmd, *rest]
         return m.main()
+    if cmd in ("stats", "seed", "distill"):
+        from . import service
+        service.ensure_running()  # cold-start onboarding needs the engine up
+        from . import ygg_seed
+        return ygg_seed.main(cmd, rest)
     if cmd in MEMORY_CMDS:
         from . import ygg as m
         sys.argv = ["ygg", cmd, *rest]
