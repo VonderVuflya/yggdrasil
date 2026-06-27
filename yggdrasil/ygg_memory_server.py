@@ -76,6 +76,13 @@ USAGE_SCALE = float(os.environ.get("YGG_USAGE_SCALE", "5"))
 # reliably surface near the top of relevant results.
 W_PIN = float(os.environ.get("YGG_W_PIN", "0.5"))
 
+# Dense (semantic) search scores cosine in pure Python over every scoped
+# embedding — fine for personal scale, but it grows linearly with the store.
+# Past this many memories WITH an embedding model active, suggest pointing
+# YGG_ENGINE_URL at a dedicated vector backend (Qdrant/etc.). Lexical/FTS5 is
+# indexed and scales fine, so the hint only fires when dense is on.
+VECTOR_WARN_AT = int(os.environ.get("YGG_VECTOR_WARN_AT", "20000"))
+
 # Small stopword set so natural-language paraphrase queries still match on the
 # content words rather than being diluted by glue words.
 STOPWORDS = {
@@ -531,9 +538,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             embedder = self.store.embedder
             embed_model = getattr(embedder, "model", None) if embedder is not None else None
-            self._send(200, {
+            count = self.store.count()
+            body = {
                 "status": "ok",
-                "memory_count": self.store.count(),
+                "memory_count": count,
                 "graph_nodes": 0,
                 "storage": "sqlite-fts5" if self.store.use_fts else "sqlite-fallback",
                 "dense": (f"active ({embed_model})" if embedder is not None
@@ -541,7 +549,17 @@ class Handler(BaseHTTPRequestHandler):
                 "reranker": "disabled (not configured)",
                 # kept for backward compatibility with older clients:
                 "backend": "ygg-sqlite-fts5" if self.store.use_fts else "ygg-sqlite-fallback",
-            })
+            }
+            # Built-in vector search is an in-Python cosine — past this size, a
+            # dedicated vector backend keeps recall fast. (Only when dense is on.)
+            if embedder is not None and count >= VECTOR_WARN_AT:
+                body["scale_hint"] = (
+                    f"{count:,} memories with the built-in in-Python vector search — "
+                    "recall will get slow. Point YGG_ENGINE_URL at a dedicated vector "
+                    "backend (e.g. Qdrant) via the MemoryBackend contract; see "
+                    "docs/backend-boundary.md."
+                )
+            self._send(200, body)
             return
         if not self._authorized():
             self._send(401, {"success": False, "error": "unauthorized"})

@@ -11,6 +11,11 @@ All notable changes to this project are documented here. Format loosely follows
   unchanged transcripts are skipped. A chat you kept talking in is re-distilled
   (its mtime/size changed). The estimate shows how many files are skipped, and
   `--force` redoes everything. No more re-grinding every transcript each run.
+- **Scale hint** — once an embedding model is active and the store passes ~20k
+  memories (`YGG_VECTOR_WARN_AT`), `/health` / `ygg doctor` / `ygg stats` /
+  `ygg seed` warn that the built-in in-Python vector search will slow down and
+  suggest pointing `YGG_ENGINE_URL` at a dedicated vector backend (e.g. Qdrant).
+  Lexical-only setups are unaffected (FTS5 is indexed and scales).
 
 ### Changed
 - **Dedup is now indexed and unbounded.** `find_existing_hash` uses a new indexed

@@ -43,6 +43,14 @@ MAX_CHARS_PER_FILE = 14000  # window we feed the local model per source file
 # ygg stats — what's in memory right now
 # --------------------------------------------------------------------------- #
 
+def _scale_hint() -> str:
+    """The engine's 'consider a vector backend' warning, if the store is large."""
+    try:
+        return _ygg.request_json("GET", "/health").get("scale_hint") or ""
+    except _ygg.YggError:
+        return ""
+
+
 def stats(user_id: str, namespace: str) -> int:
     try:
         data = _ygg.request_json("GET", "/get_all", query={"user_id": user_id, "limit": 5000}).get("data", [])
@@ -77,6 +85,9 @@ def stats(user_id: str, namespace: str) -> int:
     _table("by scope:", by_scope)
     print("retrieve:  ygg recall --query \"…\"  (cross-project) · "
           "ygg bootstrap --project P  (one project)")
+    hint = _scale_hint()
+    if hint:
+        print(f"\n⚠ {hint}")
     return 0
 
 
@@ -432,6 +443,9 @@ def seed(args: argparse.Namespace) -> int:
     print(f"\nDone: +{total['added']} new, {total['dup']} dup-skipped, "
           f"{total['skipped']} unchanged, {total['errors']} error(s).")
     print("Check it:  ygg stats   ·   retrieve:  ygg recall --query \"…\"")
+    hint = _scale_hint()
+    if hint:
+        print(f"\n⚠ {hint}")
     return 0
 
 

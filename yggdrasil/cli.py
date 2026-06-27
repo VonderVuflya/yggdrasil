@@ -155,7 +155,10 @@ def _doctor() -> int:
 
     try:
         with urllib.request.urlopen(f"{url}/health", timeout=3) as r:
-            print(f"  [ok] engine up on {url} — {json.load(r)}")
+            h = json.load(r)
+        print(f"  [ok] engine up on {url} — {h}")
+        if h.get("scale_hint"):
+            print(f"  [!!] scale: {h['scale_hint']}")
     except Exception as exc:  # noqa: BLE001
         ok = False
         print(f"  [!!] engine not reachable on {url} ({exc}). Try: ygg start")
