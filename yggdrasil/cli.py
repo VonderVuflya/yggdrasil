@@ -334,6 +334,18 @@ def main() -> int:
     cmd = argv[0] if argv else "help"
     rest = argv[1:]
 
+    # Surface a cached "newer version available" nudge on user-facing commands
+    # (reads the cache the engine maintains — never hits the network here).
+    if cmd not in ("version", "--version", "-V", "help", "-h", "--help",
+                   "mcp", "mcp-http", "serve", "ensure", "update", "redeploy"):
+        try:
+            from . import ygg_update_check
+            note = ygg_update_check.notice(__version__)
+            if note:
+                print(note, file=sys.stderr)
+        except Exception:  # noqa: BLE001 — never let the nudge break a command
+            pass
+
     if cmd in ("version", "--version", "-V"):
         print(f"yggdrasil {__version__}")
         return 0

@@ -723,6 +723,19 @@ def main() -> int:
         f"dense={args.embed_model or 'off'}",
         flush=True,
     )
+
+    # Periodically refresh the 'newer version available' cache (the CLI/MCP just
+    # read it, so they never block on the network). Best-effort, daemon thread.
+    try:
+        from . import ygg_update_check as _upd
+    except ImportError:  # flat-deployed scripts dir
+        import ygg_update_check as _upd  # type: ignore
+
+    def _update_loop() -> None:
+        while True:
+            _upd.refresh_cache()
+            time.sleep(_upd.TTL)
+    threading.Thread(target=_update_loop, daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

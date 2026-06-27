@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format loosely follows
 ## [Unreleased]
 
 ### Added
+- **Update nudge** (like context-mode) — when a newer version is published,
+  `ygg` commands and the agent's first MCP tool call show `⬆ Yggdrasil X is
+  available (you have Y). Upgrade: ygg update`. The long-lived engine refreshes a
+  cached check (`~/.yggdrasil/update-check.json`, TTL `YGG_UPDATE_CHECK_TTL`,
+  12h); the CLI and MCP facade only READ the cache, so nothing ever blocks on the
+  network.
 - **Semantic dedup** — when dense (an embedding model) is on, a write that is
   near-identical (cosine ≥ `YGG_SEMDEDUP_AT`, default 0.92) to an existing memory
   in the same project+type is skipped (`YGG_SEMANTIC_DUPLICATE_SKIP`). Catches

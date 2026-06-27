@@ -200,6 +200,27 @@ def error(message_id: Any, code: int, message: str) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": message_id, "error": {"code": code, "message": message}}
 
 
+_NOTICE_SHOWN = False
+
+
+def _update_suffix() -> str:
+    """A one-line 'newer version available' nudge, appended to the FIRST tool
+    result of the session (so the agent can relay it), then never again."""
+    global _NOTICE_SHOWN
+    if _NOTICE_SHOWN:
+        return ""
+    _NOTICE_SHOWN = True
+    try:
+        try:
+            from . import ygg_update_check
+        except ImportError:
+            import ygg_update_check  # type: ignore
+        note = ygg_update_check.notice()
+        return f"\n\n[yggdrasil] {note}" if note else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     method = message.get("method")
     message_id = message.get("id")
@@ -220,7 +241,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         if method == "tools/call":
             params = message.get("params") or {}
             text = call_tool(str(params.get("name")), params.get("arguments") or {})
-            return success(message_id, {"content": [{"type": "text", "text": text}], "isError": False})
+            return success(message_id, {"content": [{"type": "text", "text": text + _update_suffix()}], "isError": False})
         return error(message_id, -32601, f"Method not found: {method}")
     except Exception as exc:
         return success(message_id, {"content": [{"type": "text", "text": str(exc)}], "isError": True})
