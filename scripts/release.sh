@@ -35,7 +35,11 @@ note() { SUMMARY+=("$1"); }
 
 echo "==> Releasing $PKG $VERSION  (dry-run=${DRY:-no})"
 if [ -z "$YES" ] && [ -z "$DRY" ]; then
-  read -r -p "Proceed? [y/N]: " a; [[ "$a" =~ ^[Yy] ]] || { echo aborted; exit 1; }
+  if [ -t 0 ]; then
+    read -r -p "Proceed? [y/N]: " a; [[ "$a" =~ ^[Yy] ]] || { echo aborted; exit 1; }
+  else
+    echo "Non-interactive shell — re-run with --yes to proceed (this publishes for real)."; exit 1
+  fi
 fi
 
 # 1. Bump versions everywhere (python = safe for JSON).
