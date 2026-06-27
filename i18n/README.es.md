@@ -190,7 +190,7 @@ La herramienta más cercana es **claude-mem** — también memoria duradera para
 | Una memoria compartida **entre herramientas** (Claude Code · Codex · cualquier host MCP) | ✅ | ✅ | ⚠️ *por app* | ✅ | ✅ |
 | **Documentación pública de bibliotecas** actualizada | ❌ *(usa Context7)* | ❌ | ❌ | ❌ | ✅ |
 
-> **claude-mem frente a Yggdrasil, en una línea:** claude-mem captura automáticamente *todo* y lo comprime con IA (Node + Bun + una base de datos vectorial; ~84k★, incluye un token cripto). Yggdrasil conserva las *pocas cosas que importan* — curadas, deduplicadas, sin dependencias, almacenadas como Markdown que te pertenece — sin IA, sin token. Filosofía distinta; puedes usar ambas.
+> **claude-mem frente a Yggdrasil, en una línea:** claude-mem captura automáticamente *todo* y lo comprime con IA (Node + Bun + una base de datos vectorial; ~84k★, incluye un token cripto) — y el almacén crece con cada sesión. Yggdrasil conserva las *pocas cosas que importan* — curadas y **deduplicadas semánticamente** (las lecciones casi idénticas se fusionan, así se mantiene pequeño y con alta señal), sin dependencias, almacenadas como registros simples que puedes buscar, editar y que te pertenecen — sin IA, sin token. Filosofía distinta; puedes usar ambas.
 
 > **mem0 frente a Yggdrasil, en una línea:** mem0 es un **SDK/plataforma de memoria para construir aplicaciones que recuerdan a sus usuarios** (tú escribes código; normalmente llama a un LLM, con nube por defecto). Yggdrasil es **memoria lista para usar, local-first, de _tu propio_ trabajo para los agentes con los que ya programas.** Trabajo distinto — elige según quién seas.
 

@@ -198,7 +198,7 @@ Das nächstgelegene Tool ist **claude-mem** — ebenfalls dauerhaftes Gedächtni
 | Ein Gedächtnis, geteilt **über Tools hinweg** (Claude Code · Codex · jeder MCP-Host) | ✅ | ✅ | ⚠️ *pro App* | ✅ | ✅ |
 | Aktuelle öffentliche **Bibliotheks-Docs** | ❌ *(nimm Context7)* | ❌ | ❌ | ❌ | ✅ |
 
-> **claude-mem vs. Yggdrasil, in einem Satz:** claude-mem erfasst automatisch *alles* und komprimiert es per KI (Node + Bun + eine Vektor-DB; ~84k★, bringt einen Krypto-Token mit). Yggdrasil behält die *wenigen Dinge, die zählen* — kuratiert, dedupliziert, abhängigkeitsfrei, gespeichert als Markdown, das dir gehört — keine KI nötig, kein Token. Andere Philosophie; du kannst beide nutzen.
+> **claude-mem vs. Yggdrasil, in einem Satz:** claude-mem erfasst automatisch *alles* und komprimiert es per KI (Node + Bun + eine Vektor-DB; ~84k★, bringt einen Krypto-Token mit) — und der Speicher wächst mit jeder Session. Yggdrasil behält die *wenigen Dinge, die zählen* — kuratiert und **semantisch dedupliziert** (nahezu identische Lektionen werden zusammengeführt, sodass er klein und signalstark bleibt), abhängigkeitsfrei, gespeichert als einfache Datensätze, die du durchsuchen, bearbeiten und besitzen kannst — keine KI nötig, kein Token. Andere Philosophie; du kannst beide nutzen.
 
 > **mem0 vs. Yggdrasil, in einem Satz:** mem0 ist ein Gedächtnis-**SDK/eine Plattform zum Bauen von Apps, die sich an ihre Nutzer erinnern** (du schreibst Code; es ruft meist ein LLM auf, standardmäßig Cloud). Yggdrasil ist **Drop-in-, local-first-Gedächtnis _deiner eigenen_ Arbeit für die Agents, mit denen du bereits codest.** Andere Aufgabe — wähle danach, wer du bist.
 

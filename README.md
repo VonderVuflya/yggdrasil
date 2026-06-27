@@ -199,7 +199,7 @@ The closest tool is **claude-mem** — also durable memory for coding agents, bu
 | One memory shared **across tools** (Claude Code · Codex · any MCP host) | ✅ | ✅ | ⚠️ *per-app* | ✅ | ✅ |
 | Up-to-date public **library docs** | ❌ *(use Context7)* | ❌ | ❌ | ❌ | ✅ |
 
-> **claude-mem vs Yggdrasil, in one line:** claude-mem auto-captures *everything* and AI-compresses it (Node + Bun + a vector DB; ~84k★, ships a crypto token). Yggdrasil keeps the *few things that matter* — curated, deduped, zero-dependency, stored as Markdown you own — no AI required, no token. Different philosophy; you can run both.
+> **claude-mem vs Yggdrasil, in one line:** claude-mem auto-captures *everything* and AI-compresses it (Node + Bun + a vector DB; ~84k★, ships a crypto token) — the store grows with every session. Yggdrasil keeps the *few things that matter* — curated and **semantically de-duped** (near-identical lessons collapse, so it stays small and high-signal), zero-dependency, stored as plain rows you can grep, edit, and own — no AI required, no token. Different philosophy; you can run both.
 
 > **mem0 vs Yggdrasil, in one line:** mem0 is a memory **SDK/platform for building apps that remember their users** (you write code; it usually calls an LLM, cloud by default). Yggdrasil is **drop-in, local-first memory of _your own_ work for the agents you already code with.** Different job — pick by who you are.
 
