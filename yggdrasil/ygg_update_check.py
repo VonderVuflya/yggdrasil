@@ -44,8 +44,12 @@ def installed_version() -> str | None:
 
 
 def _fetch_latest() -> str | None:
+    # Cache-bust PyPI's CDN (it can briefly serve the previous version right after
+    # a publish) with a unique query + no-cache headers.
+    url = f"https://pypi.org/pypi/{PKG}/json?_={int(time.time())}"
+    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
     try:
-        with urllib.request.urlopen(f"https://pypi.org/pypi/{PKG}/json", timeout=5) as r:
+        with urllib.request.urlopen(req, timeout=5) as r:
             return json.load(r)["info"]["version"]
     except Exception:  # noqa: BLE001 — best effort, never raise into the engine loop
         return None

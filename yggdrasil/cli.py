@@ -254,8 +254,14 @@ def _reindex() -> int:
 
 
 def _pypi_latest() -> str | None:
+    import time
+    # Cache-bust: PyPI's JSON is CDN-cached and can briefly serve the PREVIOUS
+    # version right after a publish — that's why `ygg update` sometimes only sees a
+    # fresh release on a 2nd run. A unique query + no-cache headers force a miss.
+    url = f"https://pypi.org/pypi/yggdrasil-memory/json?_={int(time.time())}"
+    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
     try:
-        with urllib.request.urlopen("https://pypi.org/pypi/yggdrasil-memory/json", timeout=4) as r:
+        with urllib.request.urlopen(req, timeout=4) as r:
             return json.load(r)["info"]["version"]
     except Exception:  # noqa: BLE001
         return None
