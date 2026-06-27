@@ -384,8 +384,8 @@ class MemoryStore:
     ) -> list[dict[str, Any]]:
         filters = filters or {}
         terms = tokenize(expand_identifiers(query))
-        if not terms:
-            return []
+        if not terms and self.embedder is None:
+            return []  # lexical-only with no usable terms — nothing to match
 
         where = ["m.user_id=?", "m.archived=0"]
         params: list[Any] = [user_id]
@@ -412,7 +412,7 @@ class MemoryStore:
 
         now = time.time()
         with self._lock:
-            if self.use_fts:
+            if self.use_fts and terms:
                 match_query = " OR ".join(f'"{term}"' for term in terms)
                 sql = (
                     "SELECT m.*, bm25(mem_fts) AS rank FROM mem_fts "
@@ -420,6 +420,8 @@ class MemoryStore:
                     f"WHERE mem_fts MATCH ? AND {where_sql}"
                 )
                 rows = self._conn.execute(sql, [match_query, *params]).fetchall()
+            elif self.use_fts:
+                rows = []  # no usable lexical terms -> lean on dense (handled below)
             else:
                 rows = self._conn.execute(f"SELECT m.* FROM memories m WHERE {where_sql}", params).fetchall()
             vec_rows = []
@@ -502,6 +504,24 @@ class MemoryStore:
             rec = records[mid]
             rec["score"] = round(score, 6)
             result.append(rec)
+        # Never come back empty when there's a semantic store to draw from: fall
+        # back to the nearest memories by cosine (helps one-word / paraphrase /
+        # cross-lingual queries where nothing cleared the cutoff above). Marked so
+        # callers can tell these are "closest", not strong matches.
+        if not result and query_vec and vec_rows:
+            near: list[tuple[float, Any]] = []
+            for row in vec_rows:
+                try:
+                    emb = json.loads(row["embedding"])
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                near.append((cosine(query_vec, emb), row))
+            near.sort(key=lambda t: t[0], reverse=True)
+            for sim, row in near[:limit]:
+                rec = self._row_to_record(row)
+                rec["score"] = round(sim, 6)
+                rec["nearest"] = True
+                result.append(rec)
         return result[:limit]
 
     def record_access(self, ids: list[str]) -> None:

@@ -287,9 +287,13 @@ def remember(args: argparse.Namespace) -> None:
 def search(args: argparse.Namespace) -> None:
     if args.scope == "project" and not args.project:
         raise YggError("--project is required for project-scoped search.")
-    filters: dict[str, Any] = {"scope": args.scope}
+    # Match a project across scopes, so memories saved global-but-tagged to the
+    # project are found here too (use `ygg recall` for cross-project/global facts).
+    filters: dict[str, Any] = {}
     if args.project:
         filters["project"] = args.project
+    else:
+        filters["scope"] = args.scope
     if args.type:
         filters["type"] = args.type
     if getattr(args, "tag", None):
@@ -307,7 +311,15 @@ def search(args: argparse.Namespace) -> None:
     if args.json:
         print(json.dumps(result["data"], indent=2, sort_keys=True))
         return
-    for item in result["data"]:
+    hits = result["data"]
+    if not hits:
+        if args.project:
+            print(f'(no matches in project "{args.project}" — try '
+                  f'`ygg recall --query "{args.query}"` to span every project + global memory)')
+        else:
+            print("(no matches)")
+        return
+    for item in hits:
         _print_hit(item)
 
 
@@ -321,10 +333,11 @@ def _print_hit(item: dict[str, Any]) -> None:
     used = item.get("access_count") or 0
     score = item.get("score")
     score_s = f"{score:.4f}" if isinstance(score, (int, float)) else "?"
+    near = " ~nearest" if item.get("nearest") else ""
     preview = " ".join((item.get("memory") or "").split())[:160]
     tags = md.get("tags") or []
     tag_s = f"  tags={','.join(map(str, tags))}" if tags else ""
-    print(f"{item.get('id')}  score={score_s}{pin}  project={md.get('project')}  type={md.get('type')}")
+    print(f"{item.get('id')}  score={score_s}{near}{pin}  project={md.get('project')}  type={md.get('type')}")
     print(f"  src={src}  conf={conf_s}  used={used}x{tag_s}")
     print(textwrap.indent(preview, "  "))
 

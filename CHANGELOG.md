@@ -3,9 +3,20 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.5.0] — 2026-06-27
+
+### Changed
+- **`ygg search --project X` now matches the project across scopes** — memories
+  saved `--scope global` but tagged to a project are found here too (previously
+  only `ygg recall` surfaced them). An empty project search now hints at `ygg
+  recall`. This is a retrieval behavior change, hence the minor bump.
 
 ### Added
+- **Recall fallbacks (no more empty-handed):** a one-word / all-stopword query no
+  longer short-circuits to `[]` when dense is on, and when nothing clears the
+  similarity cutoff the search returns the nearest memories by cosine (flagged
+  `~nearest`). Helps paraphrase / cross-lingual / single-word lookups. The recall
+  eval is unchanged (no regression; dense recall@3 = 1.0 across classes).
 - **Update nudge** (like context-mode) — when a newer version is published,
   `ygg` commands and the agent's first MCP tool call show `⬆ Yggdrasil X is
   available (you have Y). Upgrade: ygg update`. The long-lived engine refreshes a
