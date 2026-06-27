@@ -188,11 +188,33 @@ def _doctor() -> int:
     return 0 if ok else 1
 
 
+def _check_newer_on_pypi() -> None:
+    """Best-effort: tell the user if a newer release is on PyPI (we can't
+    self-upgrade a brew/pip-installed package from inside it)."""
+    try:
+        with urllib.request.urlopen("https://pypi.org/pypi/yggdrasil-memory/json", timeout=3) as r:
+            latest = json.load(r)["info"]["version"]
+    except Exception:  # noqa: BLE001
+        return
+    if latest and latest != __version__:
+        print(f"  ⬆ yggdrasil-memory {latest} is on PyPI (you have {__version__}).")
+        print( "    `ygg update` only redeploys the INSTALLED version — upgrade the package first:")
+        print( "      brew upgrade yggdrasil            # Homebrew")
+        print( "      pipx upgrade yggdrasil-memory     # pipx")
+        print( "      pip install -U yggdrasil-memory   # pip")
+        print( "    …then re-run `ygg update`.")
+
+
 def _update() -> int:
-    """Redeploy the current package code into ~/.yggdrasil."""
+    """Redeploy the INSTALLED package code into ~/.yggdrasil and restart.
+
+    This deploys whatever version of ``yggdrasil-memory`` is installed — it does
+    NOT fetch a new release. Upgrade the package via your installer first.
+    """
     from . import service
     cfg = _config()
-    print("redeploying current code into ~/.yggdrasil ...")
+    print(f"redeploying installed yggdrasil {__version__} into ~/.yggdrasil ...")
+    _check_newer_on_pypi()
     return service.install(cfg.get("embed_model", ""), cfg.get("bg_model", ""))
 
 
