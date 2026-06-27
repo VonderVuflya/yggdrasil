@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [0.4.3] — 2026-06-27
+
+### Added
+- **Colorful animated `ygg seed`** — a live progress line (spinner + bar + %, the
+  current session/file, done/total, lessons added, elapsed and a live ETA), with
+  completed sources scrolling above it. Ctrl-C stops cleanly and still prints the
+  run summary (files distilled, lessons added, elapsed, throughput, DB size).
+  Pure stdlib (ANSI); falls back to plain lines on a non-TTY or with `NO_COLOR`.
+
+### Fixed
+- `ygg update` on Homebrew ran a bare `brew upgrade yggdrasil`, which brew
+  mis-resolves as a cask (`Cask 'yggdrasil' is not installed`); now tap-qualified
+  (`VonderVuflya/tap/yggdrasil`).
+
+### Changed
+- `release.sh`: auto-pushes the brew formula to the tap via the GitHub API (no
+  `YGG_TAP_DIR` needed) so the tap can't go stale, and `mcp-publisher publish`
+  auto-runs `mcp-publisher login github` on a missing/expired token, then retries.
+
 ## [0.4.2] — 2026-06-27
 
 ### Added

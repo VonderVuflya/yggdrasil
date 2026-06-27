@@ -21,7 +21,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -330,9 +332,145 @@ def _is_unchanged(f: Path, state: dict) -> bool:
     return prev.get("mtime") == st.st_mtime and prev.get("size") == st.st_size
 
 
+# --------------------------------------------------------------------------- #
+# live progress — colorful animated CLI, pure stdlib (ANSI + a spinner thread).
+# Falls back to plain lines when stdout isn't a TTY (pipes/CI), or NO_COLOR set.
+# --------------------------------------------------------------------------- #
+
+class _C:
+    """Minimal ANSI colorizer, gated once on tty + NO_COLOR."""
+    def __init__(self, on: bool):
+        self.on = on
+
+    def __call__(self, code: str, s: str) -> str:
+        return f"\033[{code}m{s}\033[0m" if self.on else s
+
+    def cyan(self, s): return self("36", s)
+    def green(self, s): return self("32", s)
+    def red(self, s): return self("31", s)
+    def yellow(self, s): return self("33", s)
+    def magenta(self, s): return self("35", s)
+    def dim(self, s): return self("2", s)
+    def bold(self, s): return self("1", s)
+
+
+def _fmt_dur(sec: float) -> str:
+    sec = int(max(0, sec))
+    h, rem = divmod(sec, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+class _Progress:
+    """A single live status line (animated spinner + bar + ETA) with scrollback
+    logging above it, plus a final summary. Thread-safe; safe on non-TTY."""
+
+    FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def __init__(self, total: int, *, db_path: str | None = None):
+        self.total = max(0, total)
+        self.done = 0
+        self.added = self.dup = self.errors = 0
+        self.start = time.time()
+        self.label = "starting…"
+        self.db_path = db_path
+        self.db_start = self._db_size()
+        self.tty = sys.stdout.isatty() and os.environ.get("NO_COLOR") is None and self.total > 0
+        self.c = _C(self.tty)
+        self._i = 0
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread = None
+        if self.tty:
+            self._thread = threading.Thread(target=self._animate, daemon=True)
+            self._thread.start()
+
+    def _db_size(self) -> int:
+        try:
+            return Path(self.db_path).stat().st_size if self.db_path else 0
+        except OSError:
+            return 0
+
+    def _animate(self) -> None:
+        while not self._stop.wait(0.12):
+            with self._lock:
+                self._i = (self._i + 1) % len(self.FRAMES)
+                self._draw()
+
+    def _draw(self) -> None:
+        if not self.tty:
+            return
+        cols = shutil.get_terminal_size((90, 20)).columns
+        frac = self.done / self.total if self.total else 1.0
+        width = 20
+        fill = int(width * frac)
+        bar = self.c.green("█" * fill) + self.c.dim("░" * (width - fill))
+        el = time.time() - self.start
+        eta = (el / self.done * (self.total - self.done)) if self.done else 0.0
+        spin = self.c.cyan(self.FRAMES[self._i])
+        label = self.label if len(self.label) <= 34 else self.label[:33] + "…"
+        eta_s = f" {self.c.dim('· ~' + _fmt_dur(eta) + ' left')}" if self.done else ""
+        line = (f"\r{spin} [{bar}] {self.c.bold(f'{frac * 100:3.0f}%')} "
+                f"{self.done}/{self.total} {self.c.dim('·')} {self.c.cyan(label)} "
+                f"{self.c.green('+' + str(self.added))} {self.c.dim('· ' + _fmt_dur(el))}{eta_s}")
+        try:
+            sys.stdout.write(line + "\033[K")
+            sys.stdout.flush()
+        except (OSError, ValueError):
+            pass
+
+    def set_label(self, label: str) -> None:
+        with self._lock:
+            self.label = label
+            self._draw()
+
+    def file_done(self, res: dict) -> None:
+        with self._lock:
+            self.done += 1
+            self.added += res.get("added", 0)
+            self.dup += res.get("dup", 0)
+            self.errors += res.get("errors", 0)
+            self._draw()
+
+    def log(self, msg: str) -> None:
+        with self._lock:
+            if self.tty:
+                sys.stdout.write("\r\033[K")
+            print(msg)
+            if self.tty:
+                self._draw()
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=0.5)
+            self._thread = None
+        if self.tty:
+            sys.stdout.write("\r\033[K")
+            sys.stdout.flush()
+
+    def summary(self, *, interrupted: bool = False) -> None:
+        self.close()
+        el = time.time() - self.start
+        rate = self.done / (el / 60) if el > 0 else 0.0
+        head = self.c.yellow("⚠ interrupted") if interrupted else self.c.green("✓ done")
+        print(f"\n🌳 {self.c.bold('Yggdrasil seed')} — {head}")
+        print(f"   distilled : {self.c.bold(str(self.done))}/{self.total} files "
+              f"{self.c.dim(f'({rate:.1f}/min)')}")
+        print(f"   lessons   : {self.c.green('+' + str(self.added))} new "
+              f"{self.c.dim(f'· {self.dup} dup · {self.errors} err')}")
+        print(f"   elapsed   : {_fmt_dur(el)}")
+        if self.db_path:
+            now = self._db_size()
+            grew = now - self.db_start
+            sign = "+" if grew >= 0 else ""
+            print(f"   memory db : {now / 1_048_576:.1f} MB "
+                  f"{self.c.dim(f'({sign}{grew / 1024:.0f} KB this run)')}")
+
+
 def distill_source(src: dict[str, Any], *, model: str, user_id: str, namespace: str,
                    project_override: str | None = None, state: dict | None = None,
-                   force: bool = False) -> dict[str, int]:
+                   force: bool = False, progress: "_Progress | None" = None) -> dict[str, int]:
     project = project_override or src["project"]
     files = [f for f in _source_files(src) if f.exists()]
     agg = {"added": 0, "dup": 0, "errors": 0, "skipped": 0}
@@ -345,25 +483,34 @@ def distill_source(src: dict[str, Any], *, model: str, user_id: str, namespace: 
                 todo.append(f)
     else:
         todo = files
-    extra = f", {agg['skipped']} unchanged" if agg["skipped"] else ""
-    print(f"  distilling {project} ({len(todo)} file(s){extra}) ...")
+    if progress is None:
+        extra = f", {agg['skipped']} unchanged" if agg["skipped"] else ""
+        print(f"  distilling {project} ({len(todo)} file(s){extra}) ...")
     for f in todo:
+        if progress is not None:
+            progress.set_label(f"{project} · {f.name}")
         try:
             res = distill_text(_extract_text(f), project=project, source=f"seed:{src['kind']}",
                                model=model, user_id=user_id, namespace=namespace)
         except Exception as exc:  # noqa: BLE001 — one bad file must never abort the source
-            print(f"    skipped {f.name}: {exc}", file=sys.stderr)
+            (progress.log if progress else lambda m: print(m, file=sys.stderr))(f"    skipped {f.name}: {exc}")
             res = {"added": 0, "dup": 0, "errors": 1}
         for k in ("added", "dup", "errors"):
             agg[k] += res[k]
+        if progress is not None:
+            progress.file_done(res)
         if state is not None:  # record processed at the file's current mtime + size
             try:
                 st = f.stat()
                 state[str(f)] = {"mtime": st.st_mtime, "size": st.st_size, "distilled_at": time.time()}
             except OSError:
                 pass
-    print(f"    {project}: +{agg['added']} new, {agg['dup']} dup-skipped, "
-          f"{agg['skipped']} unchanged, {agg['errors']} error(s)")
+    summary = (f"  {project}: +{agg['added']} new, {agg['dup']} dup-skipped, "
+               f"{agg['skipped']} unchanged, {agg['errors']} error(s)")
+    if progress is not None:
+        progress.log(summary)
+    else:
+        print(f"  " + summary.strip())
     return agg
 
 
@@ -429,19 +576,20 @@ def seed(args: argparse.Namespace) -> int:
         except EOFError:
             return 0
 
-    total = {"added": 0, "dup": 0, "errors": 0, "skipped": 0}
-    for s in sources:
-        try:
-            res = distill_source(s, model=model, user_id=args.user_id, namespace=args.namespace,
-                                 state=state, force=force)
-        except Exception as exc:  # noqa: BLE001 — one bad source must never abort the seed
-            print(f"    skipped {s.get('project')}: {exc}", file=sys.stderr)
-            res = {"added": 0, "dup": 0, "errors": 1, "skipped": 0}
-        for k in total:
-            total[k] += res.get(k, 0)
-        _save_seed_state(state)  # persist progress after each source (crash-safe)
-    print(f"\nDone: +{total['added']} new, {total['dup']} dup-skipped, "
-          f"{total['skipped']} unchanged, {total['errors']} error(s).")
+    progress = _Progress(len(new_files), db_path=str(YGG_HOME / "data" / "memory.sqlite"))
+    interrupted = False
+    try:
+        for s in sources:
+            try:
+                distill_source(s, model=model, user_id=args.user_id, namespace=args.namespace,
+                               state=state, force=force, progress=progress)
+            except Exception as exc:  # noqa: BLE001 — one bad source must never abort the seed
+                progress.log(f"  skipped {s.get('project')}: {exc}")
+            _save_seed_state(state)  # persist progress after each source (crash-safe)
+    except KeyboardInterrupt:  # Ctrl-C: stop cleanly and still show the summary
+        interrupted = True
+        _save_seed_state(state)
+    progress.summary(interrupted=interrupted)
     print("Check it:  ygg stats   ·   retrieve:  ygg recall --query \"…\"")
     hint = _scale_hint()
     if hint:
