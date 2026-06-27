@@ -47,6 +47,17 @@ DEFAULT_IDENTITY = {
     "user_facts": [],
 }
 
+# Always-injected proactivity directive — the "forcing function" a passive skill
+# lacks. Turns "the model might call the tools" into "recall before, remember after".
+PROACTIVE_DIRECTIVE = (
+    "Yggdrasil durable memory is available through the ygg_* tools — use it proactively, "
+    "without waiting to be asked:\n"
+    "- BEFORE non-trivial work, call ygg_recall (across projects) or ygg_bootstrap "
+    "(this project) to reuse prior decisions and lessons.\n"
+    "- WHEN you make a decision, learn a lesson, fix a non-obvious bug, or hit a gotcha "
+    "worth keeping, call ygg_remember to save it (one durable fact, scoped to the project)."
+)
+
 
 def load_identity() -> dict:
     ident = dict(DEFAULT_IDENTITY)
@@ -148,7 +159,7 @@ def main() -> int:
         memory_block = "\n".join(lines)
 
     status_block = fetch_status_block(project)
-    context = "\n\n".join(b for b in (identity_block, status_block, memory_block) if b)
+    context = "\n\n".join(b for b in (identity_block, PROACTIVE_DIRECTIVE, status_block, memory_block) if b)
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": context}}))
     return 0
 

@@ -32,3 +32,4 @@ venv/
 node_modules/
 .DS_Store
 .pytest_cache/
+skills/*.zip

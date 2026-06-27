@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [0.4.1] — 2026-06-27
+
+### Added
+- **Proactive memory** — the agent recalls and remembers without being asked:
+  - The SessionStart hook now injects an always-on directive (recall before
+    non-trivial work; remember durable decisions/lessons/gotchas after), turning
+    the advisory skill into a forcing function.
+  - The Claude Code / Codex / Cursor **plugin now ships that SessionStart hook**
+    (`hooks/hooks.json`), so plugin-only installs also get auto-injected memory —
+    not just `ygg install` users.
+  - Slash commands `/ygg-recall`, `/ygg-remember`, `/ygg-health` (`commands/`) for
+    explicit, discoverable control.
+
+### Changed
+- Plugin manifests use the spec array form `"skills": ["./skills/yggdrasil-memory"]`.
+- The uploadable skill zip is now built at release time (removed from git, gitignored).
+
 ## [0.4.0] — 2026-06-24
 
 ### Added

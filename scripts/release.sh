@@ -82,6 +82,8 @@ echo "==> build"
 run rm -rf dist
 run uv build
 run bash packaging/mcpb/build.sh
+# build the uploadable skill zip (gitignored — built fresh each release)
+run bash -c 'cd skills && rm -f yggdrasil-memory.zip && zip -q -r -X yggdrasil-memory.zip yggdrasil-memory'
 
 # 5. git commit + tag + push.
 if [ -z "$SKIP_GIT" ]; then

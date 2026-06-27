@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/yggdrasil/hooks/ygg_session_start.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
