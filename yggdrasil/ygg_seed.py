@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -271,31 +272,87 @@ def distill_text(text: str, *, project: str, source: str, model: str,
     return {"added": added, "dup": dup, "errors": errors}
 
 
-def distill_source(src: dict[str, Any], *, model: str, user_id: str, namespace: str,
-                   project_override: str | None = None) -> dict[str, int]:
-    project = project_override or src["project"]
+# --------------------------------------------------------------------------- #
+# incremental state — only (re)distill new or CHANGED files
+# --------------------------------------------------------------------------- #
+
+_SEED_STATE = YGG_HOME / "seed-state.json"
+
+
+def _load_seed_state() -> dict:
+    try:
+        data = json.loads(_SEED_STATE.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_seed_state(state: dict) -> None:
+    try:
+        YGG_HOME.mkdir(parents=True, exist_ok=True)
+        _SEED_STATE.write_text(json.dumps(state))
+    except OSError:
+        pass
+
+
+def _source_files(src: dict[str, Any]) -> list[Path]:
     base = Path(src["path"])
-    files: list[Path] = []
     if src["kind"] == "claude":
-        files = sorted(base.glob("*.jsonl")) + sorted((base / "memory").glob("*.md"))
-    elif src["kind"] == "obsidian":
-        files = sorted(base.glob("**/*.md"))[:50]
-    elif src["kind"] == "repo":
-        files = [base / "CLAUDE.md"]
-    agg = {"added": 0, "dup": 0, "errors": 0}
-    print(f"  distilling {project} ({len(files)} file(s)) ...")
-    for f in files:
-        if not f.exists():
-            continue
+        return sorted(base.glob("*.jsonl")) + sorted((base / "memory").glob("*.md"))
+    if src["kind"] == "obsidian":
+        return sorted(base.glob("**/*.md"))[:50]
+    if src["kind"] == "repo":
+        return [base / "CLAUDE.md"]
+    return []
+
+
+def _is_unchanged(f: Path, state: dict) -> bool:
+    """True iff this file was already distilled at its CURRENT mtime + size — so a
+    transcript the user kept chatting in (mtime/size changed) is re-distilled."""
+    prev = state.get(str(f))
+    if not prev:
+        return False
+    try:
+        st = f.stat()
+    except OSError:
+        return False
+    return prev.get("mtime") == st.st_mtime and prev.get("size") == st.st_size
+
+
+def distill_source(src: dict[str, Any], *, model: str, user_id: str, namespace: str,
+                   project_override: str | None = None, state: dict | None = None,
+                   force: bool = False) -> dict[str, int]:
+    project = project_override or src["project"]
+    files = [f for f in _source_files(src) if f.exists()]
+    agg = {"added": 0, "dup": 0, "errors": 0, "skipped": 0}
+    if state is not None and not force:
+        todo = []
+        for f in files:
+            if _is_unchanged(f, state):
+                agg["skipped"] += 1
+            else:
+                todo.append(f)
+    else:
+        todo = files
+    extra = f", {agg['skipped']} unchanged" if agg["skipped"] else ""
+    print(f"  distilling {project} ({len(todo)} file(s){extra}) ...")
+    for f in todo:
         try:
             res = distill_text(_extract_text(f), project=project, source=f"seed:{src['kind']}",
                                model=model, user_id=user_id, namespace=namespace)
         except Exception as exc:  # noqa: BLE001 — one bad file must never abort the source
             print(f"    skipped {f.name}: {exc}", file=sys.stderr)
             res = {"added": 0, "dup": 0, "errors": 1}
-        for k in agg:
+        for k in ("added", "dup", "errors"):
             agg[k] += res[k]
-    print(f"    {project}: +{agg['added']} new, {agg['dup']} dup-skipped, {agg['errors']} error(s)")
+        if state is not None:  # record processed at the file's current mtime + size
+            try:
+                st = f.stat()
+                state[str(f)] = {"mtime": st.st_mtime, "size": st.st_size, "distilled_at": time.time()}
+            except OSError:
+                pass
+    print(f"    {project}: +{agg['added']} new, {agg['dup']} dup-skipped, "
+          f"{agg['skipped']} unchanged, {agg['errors']} error(s)")
     return agg
 
 
@@ -317,18 +374,41 @@ def seed(args: argparse.Namespace) -> int:
         print("No seedable sources found (Claude Code transcripts, Obsidian vaults, "
               "or repos with CLAUDE.md). Nothing to do.")
         return 0
+    force = getattr(args, "force", False)
+    state = {} if force else _load_seed_state()
     print("Found sources to seed memory from:\n")
     for i, s in enumerate(sources):
         print(f"  [{i}] {s['kind']:8} {s['project']:<28} {_fmt_mb(s['bytes']):>9}  {s['detail']}")
         print(f"      {s['path']}")
-    est = estimate(sources)
-    print(f"\nEstimate: {est['sources']} source(s), {_fmt_mb(est['bytes'])} on disk, "
-          f"~{est['tokens_in']:,} input tokens, ≈{est['minutes']} min.")
+
+    # Incremental estimate — only NEW/CHANGED files cost anything.
+    all_files = [f for s in sources for f in _source_files(s) if f.exists()]
+    new_files = [f for f in all_files if force or not _is_unchanged(f, state)]
+    unchanged = len(all_files) - len(new_files)
+    new_bytes = 0
+    for f in new_files:
+        try:
+            new_bytes += f.stat().st_size
+        except OSError:
+            pass
+    capped = min(new_bytes, MAX_CHARS_PER_FILE * max(1, len(new_files)))
+    tokens_in = capped // 4
+    minutes = max(1, round(len(new_files) * 6 / 60 + tokens_in / 9000))
     model = args.model or _bg_model()
-    print(f"Distill runs LOCALLY via Ollama model '{model}' — free, nothing leaves your machine.\n")
+    skipped_note = f" ({unchanged} unchanged — skipped)" if unchanged else ""
+    print(f"\nEstimate: {len(new_files)} new/changed file(s) to distill{skipped_note}, "
+          f"~{tokens_in:,} input tokens, ≈{minutes} min.")
+    print(f"Distill runs LOCALLY via Ollama model '{model}' — free, nothing leaves your machine.")
+    if not force:
+        print("Incremental: already-distilled files are skipped (re-run picks up only new/edited "
+              "chats). Use --force to redo everything.")
+    print()
 
     if args.dry_run:
         print("(dry run — nothing written. Re-run without --dry-run to distill.)")
+        return 0
+    if not new_files:
+        print("Everything is already distilled — nothing to do. New/edited chats are picked up next run.")
         return 0
     if sys.stdin.isatty() and not args.yes:
         try:
@@ -338,17 +418,19 @@ def seed(args: argparse.Namespace) -> int:
         except EOFError:
             return 0
 
-    total = {"added": 0, "dup": 0, "errors": 0}
+    total = {"added": 0, "dup": 0, "errors": 0, "skipped": 0}
     for s in sources:
         try:
-            res = distill_source(s, model=model, user_id=args.user_id, namespace=args.namespace)
+            res = distill_source(s, model=model, user_id=args.user_id, namespace=args.namespace,
+                                 state=state, force=force)
         except Exception as exc:  # noqa: BLE001 — one bad source must never abort the seed
             print(f"    skipped {s.get('project')}: {exc}", file=sys.stderr)
-            res = {"added": 0, "dup": 0, "errors": 1}
+            res = {"added": 0, "dup": 0, "errors": 1, "skipped": 0}
         for k in total:
-            total[k] += res[k]
-    print(f"\nDone: +{total['added']} new memories, {total['dup']} dup-skipped, "
-          f"{total['errors']} error(s).")
+            total[k] += res.get(k, 0)
+        _save_seed_state(state)  # persist progress after each source (crash-safe)
+    print(f"\nDone: +{total['added']} new, {total['dup']} dup-skipped, "
+          f"{total['skipped']} unchanged, {total['errors']} error(s).")
     print("Check it:  ygg stats   ·   retrieve:  ygg recall --query \"…\"")
     return 0
 
@@ -360,15 +442,22 @@ def distill_cmd(args: argparse.Namespace) -> int:
         return 1
     model = args.model or _bg_model()
     project = args.project or path.name
+    state = _load_seed_state()  # explicit distill still records state, so `seed` skips it later
     if path.is_file():
         res = distill_text(_extract_text(path), project=project, source="distill",
                            model=model, user_id=args.user_id, namespace=args.namespace)
+        try:
+            st = path.stat()
+            state[str(path)] = {"mtime": st.st_mtime, "size": st.st_size, "distilled_at": time.time()}
+        except OSError:
+            pass
     else:
         kind = "claude" if (path / "memory").is_dir() or list(path.glob("*.jsonl")) else "obsidian"
         res = distill_source({"kind": kind, "path": str(path), "project": project,
                               "bytes": 0, "files": 0}, model=model,
                              user_id=args.user_id, namespace=args.namespace,
-                             project_override=project)
+                             project_override=project, state=state, force=True)
+    _save_seed_state(state)
     print(f"distilled: +{res['added']} new, {res['dup']} dup, {res['errors']} error(s)")
     return 0
 
@@ -387,6 +476,7 @@ def main(cmd: str, rest: list[str]) -> int:
     if cmd == "seed":
         p.add_argument("--dry-run", action="store_true", help="discover + estimate only, write nothing")
         p.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+        p.add_argument("--force", action="store_true", help="re-distill everything (ignore the incremental seed state)")
     if cmd == "distill":
         p.add_argument("--source", required=True, help="dir or file to distill")
         p.add_argument("--project", help="project label for the lessons (default: source name)")

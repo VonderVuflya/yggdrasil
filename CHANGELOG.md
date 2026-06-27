@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [0.4.2] — 2026-06-27
+
+### Added
+- **Incremental `ygg seed`** — a per-file state (`~/.yggdrasil/seed-state.json`,
+  keyed by path + mtime + size) means a re-run only distills NEW or EDITED chats;
+  unchanged transcripts are skipped. A chat you kept talking in is re-distilled
+  (its mtime/size changed). The estimate shows how many files are skipped, and
+  `--force` redoes everything. No more re-grinding every transcript each run.
+
+### Changed
+- **Dedup is now indexed and unbounded.** `find_existing_hash` uses a new indexed
+  `GET /find_hash` (O(log n) over `(user, project, type, content_hash)`) instead
+  of fetching up to 1000 rows and scanning each write — removing both the
+  per-write O(store) cost and the silent dedup break past 1000 memories. Falls
+  back to the old scan on older engines.
+
 ## [0.4.1] — 2026-06-27
 
 ### Added

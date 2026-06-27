@@ -49,5 +49,45 @@ class DistillRobustnessTest(unittest.TestCase):
         self.assertEqual(self._distill(json.dumps({"lessons": []})), {"added": 0, "dup": 0, "errors": 0})
 
 
+class IncrementalSeedTest(unittest.TestCase):
+    """Incremental seed: skip files unchanged since last distill, re-distill on change."""
+
+    def setUp(self):
+        self._orig = ygg_seed.distill_text
+        ygg_seed.distill_text = lambda *a, **k: {"added": 1, "dup": 0, "errors": 0}
+
+    def tearDown(self):
+        ygg_seed.distill_text = self._orig
+
+    def _src(self):
+        import os
+        import tempfile
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "memory"))
+        mf = os.path.join(d, "memory", "n.md")
+        open(mf, "w").write("a")
+        return {"kind": "claude", "path": d, "project": "t"}, mf
+
+    def test_skips_unchanged_and_redistills_on_change(self):
+        import time
+        src, mf = self._src()
+        state = {}
+        r1 = ygg_seed.distill_source(src, model="m", user_id="u", namespace="n", state=state)
+        r2 = ygg_seed.distill_source(src, model="m", user_id="u", namespace="n", state=state)
+        time.sleep(0.01)
+        open(mf, "w").write("the user kept chatting; the file grew")  # changes mtime + size
+        r3 = ygg_seed.distill_source(src, model="m", user_id="u", namespace="n", state=state)
+        self.assertEqual((r1["added"], r1["skipped"]), (1, 0))
+        self.assertEqual((r2["added"], r2["skipped"]), (0, 1))   # unchanged -> skipped
+        self.assertEqual((r3["added"], r3["skipped"]), (1, 0))   # changed -> re-distilled
+
+    def test_force_ignores_state(self):
+        src, _ = self._src()
+        state = {}
+        ygg_seed.distill_source(src, model="m", user_id="u", namespace="n", state=state)
+        r = ygg_seed.distill_source(src, model="m", user_id="u", namespace="n", state=state, force=True)
+        self.assertEqual((r["added"], r["skipped"]), (1, 0))     # force re-processes
+
+
 if __name__ == "__main__":
     unittest.main()
