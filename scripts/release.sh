@@ -148,12 +148,31 @@ if [ -z "$SKIP_NPM" ]; then
   else echo "  ! no npm — skipped"; note "npm: SKIPPED (no npm)"; fi
 fi
 
-# 9. MCP Registry.
+# 9. MCP Registry — auth-aware. Unlike npm, mcp-publisher won't log in on its own
+#    and dies on an expired JWT. The publish attempt IS the auth check: if it's
+#    rejected for auth (missing/expired token), run `mcp-publisher login github`
+#    (its device-flow blocks until you finish), then retry publish once.
 if [ -z "$SKIP_MCP" ]; then
   echo "==> MCP Registry"
-  if command -v mcp-publisher >/dev/null; then
-    if run mcp-publisher publish; then note "MCP Registry: published"; else note "MCP Registry: FAILED (mcp-publisher login)"; fi
-  else echo "  ! no mcp-publisher — skipped"; note "MCP Registry: SKIPPED (no mcp-publisher)"; fi
+  if ! command -v mcp-publisher >/dev/null; then
+    echo "  ! no mcp-publisher — skipped"; note "MCP Registry: SKIPPED (no mcp-publisher)"
+  elif [ -n "$DRY" ]; then
+    echo "  [dry-run] mcp-publisher publish (logs in via 'mcp-publisher login github' first if the token is missing/expired)"
+    note "MCP Registry: published"
+  elif out="$(mcp-publisher publish 2>&1)"; then
+    echo "$out"; note "MCP Registry: published"
+  elif printf '%s' "$out" | grep -qiE '401|403|unauthorized|expired|invalid.*token|no.*token|not.*logged|login'; then
+    echo "$out"
+    echo "  → MCP token missing/expired. Running: mcp-publisher login github"
+    if mcp-publisher login github; then
+      if mcp-publisher publish; then note "MCP Registry: published (after re-login)"
+      else note "MCP Registry: FAILED (publish after login)"; fi
+    else
+      note "MCP Registry: FAILED (mcp-publisher login github)"
+    fi
+  else
+    echo "$out"; note "MCP Registry: FAILED"
+  fi
 fi
 
 # 10. GitHub release with notes from the CHANGELOG section + bundle/skill assets.
