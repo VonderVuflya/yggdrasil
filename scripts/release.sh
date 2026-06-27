@@ -89,16 +89,21 @@ if [ -z "$SKIP_GIT" ]; then
   note "git: pushed + tagged v$VERSION"
 fi
 
-# 6. PyPI (everything else pulls from here — do it first).
+# 6. PyPI (everything else pulls from here — do it first). A failure is noted,
+#    not fatal, so the summary still prints; brew is gated on PyPI succeeding.
+PYPI_OK=
 if [ -z "$SKIP_PYPI" ]; then
   echo "==> PyPI"
-  if command -v uv >/dev/null; then run uv publish && note "PyPI: published"
-  elif command -v twine >/dev/null; then run twine upload dist/${PKG//-/_}-$VERSION* && note "PyPI: published (twine)"
+  if command -v uv >/dev/null; then
+    if run uv publish; then PYPI_OK=1; note "PyPI: published"; else note "PyPI: FAILED (set UV_PUBLISH_TOKEN)"; fi
+  elif command -v twine >/dev/null; then
+    if run twine upload dist/${PKG//-/_}-$VERSION*; then PYPI_OK=1; note "PyPI: published (twine)"; else note "PyPI: FAILED"; fi
   else echo "  ! no uv/twine — skipped"; note "PyPI: SKIPPED (no uv/twine)"; fi
 fi
 
 # 7. Homebrew formula — pull the REAL hashed sdist URL + sha256 from PyPI, patch the formula.
-if [ -z "$SKIP_BREW" ]; then
+#    Only runs if PyPI actually published this version (it reads PyPI for the sha).
+if [ -z "$SKIP_BREW" ] && { [ -n "$PYPI_OK" ] || [ -n "$DRY" ]; }; then
   echo "==> Homebrew formula"
   if [ -z "$DRY" ]; then
     for i in $(seq 1 12); do  # wait for PyPI to serve the new version
@@ -125,17 +130,21 @@ PY
   else echo "  [dry-run] would patch $TAP_FORMULA from PyPI"; fi
 fi
 
+[ -z "$SKIP_BREW" ] && [ -z "$PYPI_OK" ] && [ -z "$DRY" ] && note "Homebrew: SKIPPED (PyPI not published)"
+
 # 8. npm launcher.
 if [ -z "$SKIP_NPM" ]; then
   echo "==> npm"
-  if command -v npm >/dev/null; then ( cd clients/npm && run npm publish ) && note "npm: published"
+  if command -v npm >/dev/null; then
+    if ( cd clients/npm && run npm publish ); then note "npm: published"; else note "npm: FAILED (npm login)"; fi
   else echo "  ! no npm — skipped"; note "npm: SKIPPED (no npm)"; fi
 fi
 
 # 9. MCP Registry.
 if [ -z "$SKIP_MCP" ]; then
   echo "==> MCP Registry"
-  if command -v mcp-publisher >/dev/null; then run mcp-publisher publish && note "MCP Registry: published"
+  if command -v mcp-publisher >/dev/null; then
+    if run mcp-publisher publish; then note "MCP Registry: published"; else note "MCP Registry: FAILED (mcp-publisher login)"; fi
   else echo "  ! no mcp-publisher — skipped"; note "MCP Registry: SKIPPED (no mcp-publisher)"; fi
 fi
 
