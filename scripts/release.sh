@@ -53,6 +53,12 @@ edits = {
   "clients/npm/package.json":   (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
   "packaging/mcpb/manifest.json":(r'"version":\s*"[^"]+"', f'"version": "{v}"'),
   "server.json":                (r'"version":\s*"[^"]+"', f'"version": "{v}"'),  # all occurrences
+  # agent-plugin manifests (all occurrences of "version" bumped together):
+  ".claude-plugin/marketplace.json": (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
+  ".claude-plugin/plugin.json":      (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
+  ".codex-plugin/plugin.json":       (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
+  ".cursor-plugin/marketplace.json": (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
+  ".cursor-plugin/plugin.json":      (r'"version":\s*"[^"]+"', f'"version": "{v}"'),
 }
 for path, (pat, repl) in edits.items():
     p = pathlib.Path(path); t = p.read_text()
