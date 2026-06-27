@@ -229,7 +229,8 @@ def _upgrade_argv(method: str) -> list[str] | None:
     return {
         "pipx": ["pipx", "upgrade", "yggdrasil-memory"],
         "pip": [sys.executable, "-m", "pip", "install", "-U", "yggdrasil-memory"],
-        "brew": ["brew", "upgrade", "yggdrasil"],
+        # tap-qualified: bare `brew upgrade yggdrasil` is mis-resolved as a cask.
+        "brew": ["brew", "upgrade", "VonderVuflya/tap/yggdrasil"],
     }.get(method)
 
 
