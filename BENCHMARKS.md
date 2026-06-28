@@ -74,17 +74,27 @@ model sized to your hardware.
 Different memory tools solve different problems. This is an honest map, not a
 "we win every cell" table — the point is to show *which* problem Yggdrasil owns.
 
-| | **Yggdrasil** | Mimir | mem0 | Letta / Zep |
+| | **Yggdrasil** | Mimir | basic-memory | mem0 |
 | --- | --- | --- | --- | --- |
-| **Primary user** | dev *using* Claude Code / Codex | dev *building* an agent | app builder | app builder |
-| **Install** | `uvx`/`pip`/`npx`/`brew`, one line | Rust binary (`curl \| sh`) | pip + vector DB | Docker + Postgres |
-| **Runtime deps** | **zero (stdlib)** | single binary | Python + vector DB | Postgres + runtime |
-| **Local / private** | 100%, no account | yes | cloud default | Docker needed |
-| **Auto session memory** | **SessionStart + per-prompt auto-recall** | manual MCP config | SDK calls | SDK calls |
+| **Primary user** | dev *using* Claude Code / Codex | dev *building* an agent | note-taker / agent | app builder |
+| **Install** | `uvx`/`pip`/`npx`/`brew`, one line | `curl \| sh` (Rust) | pip | pip |
+| **Runtime dependencies** | **0** (pure stdlib) | compiled binary¹ | **42** packages² | **54** packages² |
+| **Local / private** | 100%, no account | yes | yes | cloud default (OpenAI) |
+| **Auto session memory** | **SessionStart + per-prompt auto-recall** | manual MCP config | manual | SDK calls |
 | **Cross-project recall** | **yes (measured 1.00)** | — | — | — |
-| **Tool surface** | **6 curated** (Glama TDQS **tier A**) | 43 tools | 5 | 8 / 0 |
-| **Retrieval quality** | **published + reproducible** (above) | not published | vendor benchmarks | vendor benchmarks |
-| **License** | AGPL-3.0 (OSI) | MIT | Apache-2.0 | Apache-2.0 |
+| **Tool surface** | **6 curated** (Glama TDQS **tier A**) | 43 tools | ~9 | 5 |
+| **Retrieval quality** | **published + reproducible** (§1) | not published | not published | vendor benchmarks |
+| **License** | AGPL-3.0 (OSI) | MIT | AGPL-3.0 | Apache-2.0 |
+
+¹ Mimir ships a single Rust binary (its README cites ~8 MB, ~85 MB RSS at 100 K
+entities); no runtime packages, but you run a prebuilt binary or compile Rust.
+² Direct runtime dependencies declared on PyPI (basic-memory 0.22.1, mem0ai 2.0.10),
+each pulling a transitive tree (vector DB clients, FastAPI, LLM routers, etc.). Verify:
+`pip show basic-memory` / `pip show mem0ai`.
+
+The **0 vs 42 vs 54** dependency gap is the whole point: Yggdrasil is pure Python
+standard library, so `uvx --from yggdrasil-memory ygg mcp` is the entire supply chain.
+Nothing to audit, nothing to break on a transitive bump, nothing that phones home.
 
 Where Yggdrasil deliberately does **not** compete: raw engine throughput on millions
 of entities (a Rust core like Mimir's will win that) and being a backend SDK you
