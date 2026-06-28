@@ -28,6 +28,16 @@ for f in "$@"; do case "$f" in
   *) echo "unknown flag: $f"; exit 2;; esac; done
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
+
+# Load persisted publish credentials ONCE so you never re-enter them per release.
+# Put `export UV_PUBLISH_TOKEN=pypi-...` (and anything else) in this file:
+RELEASE_ENV="${YGG_RELEASE_ENV:-$HOME/.yggdrasil/release.env}"
+if [ -f "$RELEASE_ENV" ]; then
+  # shellcheck disable=SC1090
+  . "$RELEASE_ENV"
+  echo "==> loaded credentials from $RELEASE_ENV"
+fi
+
 PKG="yggdrasil-memory"; TAP_FORMULA="packaging/homebrew/yggdrasil.rb"
 SUMMARY=()
 run() { if [ -n "$DRY" ]; then echo "  [dry-run] $*"; else "$@"; fi; }
@@ -98,14 +108,19 @@ if [ -z "$SKIP_GIT" ]; then
 fi
 
 # 6. PyPI (everything else pulls from here — do it first). A failure is noted,
-#    not fatal, so the summary still prints; brew is gated on PyPI succeeding.
+#    not fatal, so the summary still prints; brew + MCP both need PyPI to succeed.
 PYPI_OK=
+PYPI_HINT="PyPI: FAILED — put 'export UV_PUBLISH_TOKEN=pypi-...' in $RELEASE_ENV (one time)"
 if [ -z "$SKIP_PYPI" ]; then
   echo "==> PyPI"
+  if [ -z "${UV_PUBLISH_TOKEN:-}" ] && [ -z "$DRY" ] && [ ! -f "$HOME/.pypirc" ]; then
+    echo "  ! no PyPI credential. Set it once so you never do this again:"
+    echo "      mkdir -p ~/.yggdrasil && echo 'export UV_PUBLISH_TOKEN=pypi-...' >> $RELEASE_ENV"
+  fi
   if command -v uv >/dev/null; then
-    if run uv publish; then PYPI_OK=1; note "PyPI: published"; else note "PyPI: FAILED (set UV_PUBLISH_TOKEN)"; fi
+    if run uv publish; then PYPI_OK=1; note "PyPI: published"; else note "$PYPI_HINT"; fi
   elif command -v twine >/dev/null; then
-    if run twine upload dist/${PKG//-/_}-$VERSION*; then PYPI_OK=1; note "PyPI: published (twine)"; else note "PyPI: FAILED"; fi
+    if run twine upload dist/${PKG//-/_}-$VERSION*; then PYPI_OK=1; note "PyPI: published (twine)"; else note "$PYPI_HINT"; fi
   else echo "  ! no uv/twine — skipped"; note "PyPI: SKIPPED (no uv/twine)"; fi
 fi
 
