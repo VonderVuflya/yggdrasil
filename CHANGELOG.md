@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Relicensed from Elastic-2.0 to GNU AGPL-3.0-or-later.** Elastic-2.0 is not an
+  OSI/SPDX-recognized license, so GitHub (and tools that key off its detection, like
+  Glama) could never identify it — it showed as "Other/NOASSERTION". AGPL-3.0 is
+  OSI-approved and auto-detected, and its network copyleft keeps the original intent:
+  Yggdrasil stays free to use, modify, self-host, and redistribute, but anyone who
+  modifies it or offers it as a hosted/network service must release their source
+  under the same license.
+
 ## [0.5.3] — 2026-06-28
 
 > 🎉 **Yggdrasil is now listed on [glama.ai](https://glama.ai/mcp/servers/VonderVuflya/Yggdrasil)!**

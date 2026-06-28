@@ -15,6 +15,7 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Environment :: Console",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Software Development :: Libraries",
 ]

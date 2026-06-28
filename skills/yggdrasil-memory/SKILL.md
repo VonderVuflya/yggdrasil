@@ -1,7 +1,7 @@
 ---
 name: yggdrasil-memory
 description: Durable, cross-session, cross-project memory for the user's work via Yggdrasil. Use at the START of any non-trivial task to recall prior decisions, solutions, and lessons (ygg_recall / ygg_bootstrap), and AFTER solving something reusable to save it (ygg_remember). Trigger when the user says "have we done this before", "what do we know about X", "remember this", "save this decision/lesson", when starting work in a project that may have history, or when a problem resembles past work. Works with the Yggdrasil MCP tools (ygg_*) or the `ygg` CLI.
-license: Elastic-2.0
+license: AGPL-3.0-or-later
 metadata:
   project: yggdrasil
   homepage: https://github.com/VonderVuflya/yggdrasil

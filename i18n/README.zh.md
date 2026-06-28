@@ -10,7 +10,7 @@
   <a href="https://pypistats.org/packages/yggdrasil-memory"><img src="https://img.shields.io/pypi/dm/yggdrasil-memory?label=PyPI%20downloads&color=blue" alt="PyPI downloads"></a>
   <a href="https://www.npmjs.com/package/yggdrasil-memory"><img src="https://img.shields.io/npm/dm/yggdrasil-memory?label=npm%20downloads&color=red" alt="npm downloads"></a>
   <a href="https://pepy.tech/project/yggdrasil-memory"><img src="https://img.shields.io/pepy/dt/yggdrasil-memory?label=total%20downloads&color=8b5cf6" alt="Total downloads"></a>
-  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Elastic%202.0-blue.svg" alt="Elastic License 2.0"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%203.0-blue.svg" alt="AGPL-3.0"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/deps-zero%20(stdlib)-brightgreen" alt="zero deps">
   <img src="https://img.shields.io/badge/MCP-Claude%20·%20Codex%20·%20Desktop-purple" alt="MCP">
@@ -372,4 +372,4 @@ ygg seed     # distills on B; your SQLite DB + embeddings never leave A
 
 ## 📜 许可证
 
-**Elastic License 2.0**——参见 [LICENSE](../LICENSE)。你可以自由使用、修改、自托管和分发 Yggdrasil。你**不得**将其作为产品出售，也**不得**作为托管/managed 服务提供给他人。它是 source-available——并非 OSI 认可的开源协议。
+**GNU AGPL v3.0**——参见 [LICENSE](../LICENSE)。自由开源（OSI 认可）：你可以自由使用、修改、自托管和分发 Yggdrasil。根据 AGPL 的网络 copyleft 条款，如果你修改它**或**将其作为托管/网络服务提供给他人，你必须以相同的协议公开你的源代码。

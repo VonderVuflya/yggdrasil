@@ -14,7 +14,7 @@ class Yggdrasil < Formula
   homepage "https://github.com/VonderVuflya/yggdrasil"
   url "https://files.pythonhosted.org/packages/d0/82/9240c71a4752371251799c191dd7e91809ff3284e6c837252934377b17f4/yggdrasil_memory-0.5.3.tar.gz"
   sha256 "f2695af94dbc8b64a365a5dce4a88ab14ec4ae9de18b9d38d335c9d09f693bc0"
-  license :cannot_represent # Elastic License 2.0 (source-available, not an OSI/SPDX license)
+  license "AGPL-3.0-or-later"
   head "https://github.com/VonderVuflya/yggdrasil.git", branch: "main"
 
   depends_on "python@3.12"

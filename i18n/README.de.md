@@ -10,7 +10,7 @@ Claude Code, Codex und jeder MCP-Host erinnern sich an deine Entscheidungen, Erk
   <a href="https://pypistats.org/packages/yggdrasil-memory"><img src="https://img.shields.io/pypi/dm/yggdrasil-memory?label=PyPI%20downloads&color=blue" alt="PyPI downloads"></a>
   <a href="https://www.npmjs.com/package/yggdrasil-memory"><img src="https://img.shields.io/npm/dm/yggdrasil-memory?label=npm%20downloads&color=red" alt="npm downloads"></a>
   <a href="https://pepy.tech/project/yggdrasil-memory"><img src="https://img.shields.io/pepy/dt/yggdrasil-memory?label=total%20downloads&color=8b5cf6" alt="Total downloads"></a>
-  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Elastic%202.0-blue.svg" alt="Elastic License 2.0"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL%203.0-blue.svg" alt="AGPL-3.0"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/deps-zero%20(stdlib)-brightgreen" alt="zero deps">
   <img src="https://img.shields.io/badge/MCP-Claude%20·%20Codex%20·%20Desktop-purple" alt="MCP">
@@ -372,4 +372,4 @@ Issues und PRs willkommen. Führe `scripts/run_gates.sh` und `python3 -m unittes
 
 ## 📜 Lizenz
 
-**Elastic License 2.0** — siehe [LICENSE](../LICENSE). Du darfst Yggdrasil frei nutzen, modifizieren, selbst hosten und weitergeben. Du darfst es **nicht** als Produkt verkaufen oder anderen als gehosteten/verwalteten Dienst anbieten. Es ist source-available — kein OSI-Open-Source.
+**GNU AGPL v3.0** — siehe [LICENSE](../LICENSE). Freie und quelloffene Software (OSI-anerkannt): Du darfst Yggdrasil nutzen, modifizieren, selbst hosten und weitergeben. Gemäß dem Netzwerk-Copyleft der AGPL musst du, wenn du es modifizierst **oder** anderen als gehosteten/Netzwerkdienst anbietest, deinen Quellcode unter derselben Lizenz veröffentlichen.

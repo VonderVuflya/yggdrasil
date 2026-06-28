@@ -16,7 +16,7 @@
   "homepage": "https://github.com/VonderVuflya/yggdrasil",
   "documentation": "https://github.com/VonderVuflya/yggdrasil/blob/main/packaging/mcpb/README.md",
   "support": "https://github.com/VonderVuflya/yggdrasil/issues",
-  "license": "Elastic-2.0",
+  "license": "AGPL-3.0-or-later",
   "keywords": ["memory", "mcp", "agents", "sqlite", "local-first", "yggdrasil"],
   "server": {
     "type": "python",

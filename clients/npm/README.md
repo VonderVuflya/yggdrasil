@@ -32,4 +32,4 @@ ygg install
 
 Full docs, FAQ, and translations: **https://github.com/VonderVuflya/yggdrasil**
 
-Licensed under the Elastic License 2.0 (source-available). See `LICENSE`.
+Licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0). See `LICENSE`.

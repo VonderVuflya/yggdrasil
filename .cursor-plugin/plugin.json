@@ -8,7 +8,7 @@
   },
   "homepage": "https://github.com/VonderVuflya/yggdrasil#readme",
   "repository": "https://github.com/VonderVuflya/yggdrasil",
-  "license": "Elastic-2.0",
+  "license": "AGPL-3.0-or-later",
   "keywords": ["memory", "mcp", "local-first", "sqlite", "cross-session", "cursor"],
   "skills": ["./skills/yggdrasil-memory"],
   "mcpServers": {
