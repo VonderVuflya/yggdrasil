@@ -7,8 +7,8 @@ commands close that gap **in Yggdrasil's idiom** — curated, local-first, opt-i
 rather than the capture-everything firehose of heavier tools:
 
   ygg stats                 what's already in memory (project x type x scope)
-  ygg seed                  find your work (Claude Code transcripts, Obsidian
-                            vaults, repos), estimate the cost, then distill
+  ygg seed                  find your work (Claude Code + Codex transcripts,
+                            Obsidian vaults, repos), estimate cost, then distill
   ygg distill --source P    distill one dir/file into atomic lessons
 
 Distillation uses your LOCAL Ollama background model (free) by default — raw
@@ -118,6 +118,26 @@ def _project_label(claude_dir_name: str) -> str:
     return name.rsplit("-", 1)[-1] or name
 
 
+def _codex_project(path: Path) -> str:
+    """Project label for a Codex rollout-*.jsonl session, from its session_meta cwd."""
+    try:
+        with path.open(errors="replace") as fh:
+            for _ in range(3):  # cwd lives in session_meta, among the first lines
+                line = fh.readline()
+                if not line:
+                    break
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                p = ev.get("payload")
+                if isinstance(p, dict) and p.get("cwd"):
+                    return Path(p["cwd"]).name or "codex"
+    except OSError:
+        pass
+    return "codex"
+
+
 def discover() -> list[dict[str, Any]]:
     """Find seedable sources. Bounded/fast — globs one or two levels, no deep walks."""
     sources: list[dict[str, Any]] = []
@@ -165,6 +185,27 @@ def discover() -> list[dict[str, Any]]:
                 "kind": "repo", "path": str(repo), "project": repo.name,
                 "bytes": cm.stat().st_size, "files": 1, "detail": "CLAUDE.md",
             })
+
+    # 4. Codex CLI sessions (rollout-*.jsonl), grouped by each session's cwd project
+    #    so Codex lessons merge into the same project buckets as Claude's.
+    cdex = HOME / ".codex" / "sessions"
+    if cdex.is_dir():
+        by_project: dict[str, list[Path]] = {}
+        for f in cdex.glob("**/rollout-*.jsonl"):
+            by_project.setdefault(_codex_project(f), []).append(f)
+        for project, files in sorted(by_project.items()):
+            tbytes = 0
+            for f in files:
+                try:
+                    tbytes += f.stat().st_size
+                except OSError:
+                    pass
+            sources.append({
+                "kind": "codex", "path": str(cdex), "project": project,
+                "bytes": tbytes, "files": len(files),
+                "paths": sorted(str(f) for f in files),
+                "detail": f"{len(files)} Codex session(s)",
+            })
     return sources
 
 
@@ -206,6 +247,47 @@ def _ollama_generate(model: str, prompt: str, timeout: int = 120) -> str:
         return json.loads(r.read().decode("utf-8")).get("response", "")
 
 
+# User text items Codex injects as context, not real dialogue — skipped at extract.
+_CODEX_NOISE = ("# AGENTS.md", "<environment_context>", "<user_instructions>", "<INSTRUCTIONS>")
+
+
+def _extract_codex_text(path: Path) -> str:
+    """Pull the user/assistant dialogue out of a Codex rollout-*.jsonl session.
+
+    Codex's shape differs from Claude's: dialogue lives in `response_item` lines
+    whose `payload` is a message with a `content` list of {type, text} parts. We
+    keep user+assistant turns and drop `developer` (AGENTS.md/system injections).
+    """
+    out: list[str] = []
+    try:
+        for line in path.read_text(errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if ev.get("type") != "response_item":
+                continue
+            p = ev.get("payload")
+            if not isinstance(p, dict) or p.get("type") != "message":
+                continue
+            if p.get("role") not in ("user", "assistant"):
+                continue
+            content = p.get("content")
+            if not isinstance(content, list):
+                continue
+            for part in content:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    t = part["text"].strip()
+                    if t and not t.startswith(_CODEX_NOISE):
+                        out.append(t)
+    except OSError:
+        return ""
+    return "\n".join(out)
+
+
 def _extract_text(path: Path) -> str:
     """Pull human-readable text out of a source file (.jsonl transcript or .md)."""
     if path.suffix == ".md":
@@ -213,6 +295,8 @@ def _extract_text(path: Path) -> str:
             return path.read_text(errors="replace")
         except OSError:
             return ""
+    if ".codex/sessions" in str(path) or "/.codex/" in str(path):
+        return _extract_codex_text(path)
     out: list[str] = []
     try:
         for line in path.read_text(errors="replace").splitlines():
@@ -316,6 +400,8 @@ def _source_files(src: dict[str, Any]) -> list[Path]:
         return sorted(base.glob("**/*.md"))[:50]
     if src["kind"] == "repo":
         return [base / "CLAUDE.md"]
+    if src["kind"] == "codex":  # explicit per-project file list gathered in discover()
+        return [Path(p) for p in src.get("paths", [])]
     return []
 
 
@@ -529,7 +615,7 @@ def _bg_model() -> str:
 def seed(args: argparse.Namespace) -> int:
     sources = discover()
     if not sources:
-        print("No seedable sources found (Claude Code transcripts, Obsidian vaults, "
+        print("No seedable sources found (Claude Code + Codex transcripts, Obsidian vaults, "
               "or repos with CLAUDE.md). Nothing to do.")
         return 0
     force = getattr(args, "force", False)

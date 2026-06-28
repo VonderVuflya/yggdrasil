@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`ygg seed` now also distills Codex CLI sessions** (`~/.codex/sessions/rollout-*.jsonl`),
+  not just Claude Code transcripts. Sessions are grouped by their working directory
+  so Codex lessons merge into the same per-project buckets as Claude's. The Codex
+  rollout format (nested `response_item` → message → content list) gets its own
+  extractor that keeps user+assistant turns and drops `developer` / AGENTS.md /
+  environment-context boilerplate. Incremental seed + dedup apply as usual.
+
 ## [0.5.1] — 2026-06-27
 
 ### Fixed
