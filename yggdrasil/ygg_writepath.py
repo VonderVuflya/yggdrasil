@@ -24,13 +24,17 @@ from pathlib import Path
 
 try:
     from .ygg_core import RestMemoryBackend, YggConfig, metadata_of, record_is_archived
+    from . import ygg_config as _cfg
 except ImportError:  # flat layout (deployed scripts dir / tests / direct run)
     from ygg_core import RestMemoryBackend, YggConfig, metadata_of, record_is_archived
+    import ygg_config as _cfg
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 AUDIT = REPORTS / "writepath-audit.jsonl"
-OLLAMA = os.environ.get("YGG_EMBED_URL", "http://127.0.0.1:11434").rstrip("/")
+# Distillation endpoint — same resolution as `ygg seed` (flag > env > config).
+# main() re-resolves with --ollama-url before running.
+OLLAMA = _cfg.distill_url()
 CONF_THRESHOLD = 0.7
 # Only compare genuinely-similar peers (raw cosine). This is the key safety gate:
 # a small local model hallucinates a "supersedes" relation when forced to compare
@@ -39,12 +43,11 @@ SIM_THRESHOLD = 0.6
 
 
 def load_bg_model() -> str:
+    # bg_model may be unset (default qwen) — but here we want "" if truly unset so
+    # the caller can skip; resolve returns the default, so check config/env first.
     if os.environ.get("YGG_BG_MODEL"):
         return os.environ["YGG_BG_MODEL"]
-    try:
-        return json.loads((Path.home() / ".yggdrasil" / "config.json").read_text()).get("bg_model", "")
-    except (OSError, json.JSONDecodeError):
-        return ""
+    return _cfg.load().get("bg_model", "")
 
 
 def classify(bg_model: str, a: str, b: str) -> dict | None:
@@ -92,9 +95,14 @@ def main() -> int:
     parser.add_argument("--namespace", default=os.environ.get("YGG_NAMESPACE", "yggdrasil-demo"))
     parser.add_argument("--limit", type=int, default=200)
     parser.add_argument("--apply", action="store_true", help="Apply archives. Default: dry-run.")
+    parser.add_argument("--ollama-url", default="", dest="ollama_url",
+                        help="Ollama endpoint for the classifier (default: config distill_url, else local)")
+    parser.add_argument("--model", default="", help="classifier model (default: config bg_model)")
     args = parser.parse_args()
 
-    bg_model = load_bg_model()
+    global OLLAMA
+    OLLAMA = _cfg.distill_url(args.ollama_url or None)
+    bg_model = args.model or load_bg_model()
     if not bg_model:
         print(json.dumps({"status": "skipped", "reason": "no bg_model configured"}))
         return 0

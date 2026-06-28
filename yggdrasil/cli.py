@@ -36,6 +36,7 @@ Setup & service:
   ygg doctor             Diagnose the installation (engine, models, MCP, hook)
   ygg register           (Re)register the MCP server with Claude Code / Codex
   ygg reindex            Backfill embeddings for memories missing them (dense recall)
+  ygg config             Show/set persistent settings (list | get | set | unset)
   ygg update             Upgrade to the latest published version, then redeploy
   ygg redeploy           Redeploy the installed code into the daemon (no upgrade)
   ygg status | start | stop | restart | logs | token | uninstall
@@ -253,6 +254,61 @@ def _reindex() -> int:
     return 0
 
 
+def _config_cmd(rest: list[str]) -> int:
+    """ygg config list | get <key> | set <key> <value> | unset <key>."""
+    from . import ygg_config as C
+    sub = rest[0] if rest else "list"
+
+    if sub in ("list", "ls", ""):
+        cfg = C.load()
+        print("Yggdrasil settings  (effective value · source)\n")
+        for key, (envs, default, help_) in C.SETTINGS.items():
+            val = C.resolve(key)
+            src = C.source(key)
+            shown = val if val != "" else "(empty)"
+            print(f"  {key:<16} {shown:<34} {src}")
+            print(f"  {'':<16} {help_}")
+        print("\n  precedence: flag > env > config > default")
+        print(f"  config file: {C.CONFIG}")
+        print("  set persistently:  ygg config set <key> <value>")
+        return 0
+
+    if sub == "get":
+        if len(rest) < 2 or rest[1] not in C.SETTINGS:
+            print(f"usage: ygg config get <{'|'.join(C.SETTINGS)}>", file=sys.stderr)
+            return 2
+        print(C.resolve(rest[1]))
+        return 0
+
+    if sub == "set":
+        if len(rest) < 3 or rest[1] not in C.SETTINGS:
+            print(f"usage: ygg config set <{'|'.join(C.SETTINGS)}> <value>", file=sys.stderr)
+            return 2
+        key, value = rest[1], rest[2]
+        cfg = C.load()
+        cfg[key] = value
+        C.save(cfg)
+        print(f"set {key} = {value}  (in {C.CONFIG})")
+        if key in ("embed_model", "embed_url"):
+            print("  note: embeddings run in the daemon — run `ygg redeploy` for this to take effect.")
+        return 0
+
+    if sub == "unset":
+        if len(rest) < 2 or rest[1] not in C.SETTINGS:
+            print(f"usage: ygg config unset <{'|'.join(C.SETTINGS)}>", file=sys.stderr)
+            return 2
+        cfg = C.load()
+        if cfg.pop(rest[1], None) is not None:
+            C.save(cfg)
+            print(f"unset {rest[1]} (now: {C.resolve(rest[1])} via {C.source(rest[1])})")
+        else:
+            print(f"{rest[1]} was not set in config")
+        return 0
+
+    print(f"unknown config subcommand: {sub}\nusage: ygg config [list|get|set|unset]", file=sys.stderr)
+    return 2
+
+
 def _pypi_latest() -> str | None:
     import time
     # Cache-bust: PyPI's JSON is CDN-cached and can briefly serve the PREVIOUS
@@ -424,6 +480,8 @@ def main() -> int:
         return _register()
     if cmd == "reindex":
         return _reindex()
+    if cmd == "config":
+        return _config_cmd(rest)
     if cmd == "update":
         return _update()
     if cmd == "redeploy":

@@ -6,6 +6,13 @@ All notable changes to this project are documented here. Format loosely follows
 ## [Unreleased]
 
 ### Added
+- **Proper settings: `--flags` + `ygg config` (no more `VAR=… ygg seed`).** Every
+  setting now resolves by a single rule — **flag > env var > `config.json` >
+  default**. `ygg config list|get|set|unset` manages the persistent layer;
+  `ygg seed`/`distill`/consolidation take `--ollama-url` and `--timeout` for
+  one-off runs. The distillation endpoint (`distill_url`) is deliberately separate
+  from the daemon's embedding endpoint (`embed_url`), so you can point heavy
+  distillation at a beefier LAN box without dragging embeddings off-machine.
 - **Distill timeout is configurable + self-explaining.** The per-file limit is now
   `YGG_DISTILL_TIMEOUT` (default 120s). When files time out, `ygg seed` explains
   they're *large, not stuck*, and prints a copy-paste re-run command with a higher

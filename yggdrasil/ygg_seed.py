@@ -33,17 +33,20 @@ from typing import Any
 
 try:  # package + flat-layout (deployed scripts dir) imports
     from . import ygg as _ygg
+    from . import ygg_config as _cfg
 except ImportError:  # pragma: no cover
     import ygg as _ygg
+    import ygg_config as _cfg
 
 HOME = Path.home()
 YGG_HOME = Path(os.environ.get("YGG_HOME", str(HOME / ".yggdrasil")))
-OLLAMA_URL = os.environ.get("YGG_EMBED_URL", "http://127.0.0.1:11434")
 MAX_CHARS_PER_FILE = 14000  # window we feed the local model per source file
-# Per-file distill timeout (seconds). Big sessions on a heavier model can need
-# more than the default — raise via YGG_DISTILL_TIMEOUT. Timed-out files are NOT
-# marked done, so a plain re-run retries just them.
-DISTILL_TIMEOUT = int(os.environ.get("YGG_DISTILL_TIMEOUT", "120"))
+# Distill endpoint + per-file timeout. These are the effective values; main()
+# re-resolves them from flag > env > config before a seed/distill run. Big
+# sessions can need a longer timeout — raise it with --timeout / `ygg config set
+# distill_timeout`. Timed-out files are NOT marked done, so a re-run retries them.
+OLLAMA_URL = _cfg.distill_url()
+DISTILL_TIMEOUT = _cfg.distill_timeout()
 
 
 # --------------------------------------------------------------------------- #
@@ -627,11 +630,7 @@ def distill_source(src: dict[str, Any], *, model: str, user_id: str, namespace: 
 # --------------------------------------------------------------------------- #
 
 def _bg_model() -> str:
-    try:
-        cfg = json.loads((YGG_HOME / "config.json").read_text())
-        return cfg.get("bg_model") or "qwen2.5:1.5b"
-    except (OSError, ValueError):
-        return "qwen2.5:1.5b"
+    return _cfg.bg_model()
 
 
 def seed(args: argparse.Namespace) -> int:
@@ -664,7 +663,10 @@ def seed(args: argparse.Namespace) -> int:
     skipped_note = f" ({unchanged} unchanged — skipped)" if unchanged else ""
     print(f"\nEstimate: {len(new_files)} new/changed file(s) to distill{skipped_note}, "
           f"~{tokens_in:,} input tokens, ≈{minutes} min.")
-    print(f"Distill runs LOCALLY via Ollama model '{model}' — free, nothing leaves your machine.")
+    _local = OLLAMA_URL in ("http://127.0.0.1:11434", "http://localhost:11434")
+    _where = "LOCALLY" if _local else f"on {OLLAMA_URL}"
+    _priv = "nothing leaves your machine" if _local else "stays on your own Ollama box"
+    print(f"Distill runs {_where} via Ollama model '{model}' — free, {_priv}.")
     if not force:
         print("Incremental: already-distilled files are skipped (re-run picks up only new/edited "
               "chats). Use --force to redo everything.")
@@ -701,16 +703,17 @@ def seed(args: argparse.Namespace) -> int:
     if progress.timed_out:
         n = progress.timed_out
         higher = max(180, DISTILL_TIMEOUT * 2)
-        # Rebuild the env the user ran with, so the suggested command is copy-paste ready.
-        prefix = f"YGG_DISTILL_TIMEOUT={higher} "
+        # Suggest the clean flag form (mirrors whatever endpoint/model this run used).
+        flags = [f"--timeout {higher}"]
         if OLLAMA_URL not in ("http://127.0.0.1:11434", "http://localhost:11434"):
-            prefix = f"YGG_EMBED_URL={OLLAMA_URL} " + prefix
-        suffix = f" --model {args.model}" if getattr(args, "model", None) else ""
+            flags.append(f"--ollama-url {OLLAMA_URL}")
+        if getattr(args, "model", None):
+            flags.append(f"--model {args.model}")
         print(f"\n⏱ {n} file(s) timed out at {DISTILL_TIMEOUT}s — they're large, not stuck "
               "(the local model just needs longer on big sessions).")
         print("  They were NOT marked done, so a re-run retries only them. Raise the limit:")
-        print(f"    {prefix}ygg seed{suffix}")
-        print(f"  (current {DISTILL_TIMEOUT}s; try {higher} or 300 for the biggest sessions.)")
+        print(f"    ygg seed {' '.join(flags)}")
+        print(f"  Or make it permanent:  ygg config set distill_timeout {higher}")
     print("Check it:  ygg stats   ·   retrieve:  ygg recall --query \"…\"")
     hint = _scale_hint()
     if hint:
@@ -756,6 +759,11 @@ def main(cmd: str, rest: list[str]) -> int:
     p.add_argument("--namespace", default=os.environ.get("YGG_NAMESPACE", "yggdrasil-demo"))
     p.add_argument("--user-id", default=os.environ.get("YGG_USER_ID", "demo-user"))
     p.add_argument("--model", default="", help="Ollama model for distillation (default: config bg_model)")
+    if cmd in ("seed", "distill"):
+        p.add_argument("--ollama-url", default="", dest="ollama_url",
+                       help="Ollama endpoint for distillation, e.g. http://192.168.3.124:11434 "
+                            "(default: config distill_url, else local)")
+        p.add_argument("--timeout", default="", help="per-file distill timeout in seconds (default: config distill_timeout)")
     if cmd == "seed":
         p.add_argument("--dry-run", action="store_true", help="discover + estimate only, write nothing")
         p.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
@@ -765,6 +773,12 @@ def main(cmd: str, rest: list[str]) -> int:
         p.add_argument("--project", help="project label for the lessons (default: source name)")
     args = p.parse_args(rest)
     args.model = args.model or None
+    # Apply flag > env > config > default for the distill endpoint + timeout, by
+    # setting the module globals _ollama_generate reads. (stats has no such flags.)
+    if cmd in ("seed", "distill"):
+        global OLLAMA_URL, DISTILL_TIMEOUT
+        OLLAMA_URL = _cfg.distill_url(getattr(args, "ollama_url", "") or None)
+        DISTILL_TIMEOUT = _cfg.distill_timeout(getattr(args, "timeout", "") or None)
     if cmd == "stats":
         return stats(args.user_id, args.namespace)
     if cmd == "seed":
